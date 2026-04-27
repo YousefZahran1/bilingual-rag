@@ -1,0 +1,8 @@
+{"question": "What is the daily room rate cap for shared rooms?", "expected_keywords": ["1500", "1,500", "shared"], "expected_source": "01_health_plan_en.md"}
+{"question": "ما هو الحد الأقصى لرسوم الغرفة اليومية للغرف المشتركة؟", "expected_keywords": ["1500", "1,500"], "expected_source": "02_health_plan_ar.md"}
+{"question": "How many days do I have to submit a reimbursement?", "expected_keywords": ["90"], "expected_source": "03_claims_process_en.md"}
+{"question": "Are cosmetic surgeries covered?", "expected_keywords": ["exclud", "Exclusion", "Cosmetic"], "expected_source": "01_health_plan_en.md"}
+{"question": "هل علاج العقم مغطى؟", "expected_keywords": ["استثناء", "العقم"], "expected_source": "02_health_plan_ar.md"}
+{"question": "What documents are required for out-of-network reimbursement?", "expected_keywords": ["invoice", "claim form", "national ID"], "expected_source": "03_claims_process_en.md"}
+{"question": "كم عدد زيارات متابعة الحمل المغطاة؟", "expected_keywords": ["6", "ست"], "expected_source": "02_health_plan_ar.md"}
+{"question": "How long do I have to appeal a denied claim?", "expected_keywords": ["60"], "expected_source": "03_claims_process_en.md"}
