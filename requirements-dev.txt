@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest-cov>=5.0
+mypy>=1.10
+ruff>=0.4
