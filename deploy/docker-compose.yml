@@ -1,0 +1,30 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: bilingual-rag:0.1.0
+    ports:
+      - "8000:8000"
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      TOP_K: ${TOP_K:-4}
+    volumes:
+      - chroma:/data/chroma_db
+  ui:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: bilingual-rag:0.1.0
+    depends_on:
+      - api
+    environment:
+      API_URL: http://api:8000
+    command: streamlit run src/ui/app.py --server.address 0.0.0.0 --server.port 8501
+    ports:
+      - "8501:8501"
+
+volumes:
+  chroma:
