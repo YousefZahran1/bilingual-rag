@@ -4,20 +4,9 @@ A retrieval-augmented question-answering system tuned for Saudi healthcare and i
 
 > Built to demonstrate a production-flavoured RAG pipeline end-to-end: multilingual embeddings, vector search, FastAPI inference, Streamlit UI, and a real evaluation harness — not a toy notebook.
 
-## Live demo
+## Run locally
 
-The repo ships a one-command Hugging Face Spaces deploy. See [`docs/DEMO.md`](docs/DEMO.md) for full instructions; the short version is:
-
-```bash
-huggingface-cli login                                          # paste HF token (interactive, one-time)
-huggingface-cli upload --repo-type=space YousefZahran1/bilingual-rag . .
-```
-
-Once the build finishes (~5 minutes on the free CPU tier), the demo lives at:
-
-> https://huggingface.co/spaces/YousefZahran1/bilingual-rag
-
-The Space defaults to `LLM_PROVIDER=mock` (no API key needed for reviewers); set the Space secrets `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` and override `LLM_PROVIDER` to switch to a real LLM.
+See **Quick start** below — works in ~2 minutes with no API key (mock provider included). Docker also available via `deploy/docker-compose.yml`. HF Spaces deployment instructions in [`docs/DEMO.md`](docs/DEMO.md).
 
 ## Eval (this commit, HTTP-verified)
 
