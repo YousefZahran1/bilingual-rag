@@ -1,7 +1,6 @@
 """FastAPI service exposing /chat with citations."""
 from __future__ import annotations
 
-import os
 from typing import List
 
 from fastapi import FastAPI

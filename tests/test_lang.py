@@ -11,7 +11,8 @@ def test_pure_arabic():
 
 
 def test_mixed_text():
-    assert detect_language("Hello and مرحبا — fifty-fifty mix here.") == "mixed"
+    # 10 Arabic chars (مرحبا x2) vs 10 ASCII letters (Hello x2) → ratio_ar=0.5 → "mixed"
+    assert detect_language("Hello مرحبا Hello مرحبا.") == "mixed"
 
 
 def test_empty():

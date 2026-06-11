@@ -1,6 +1,4 @@
 """Generator wired to MockProvider produces a non-empty answer with citations."""
-import os
-
 from src.rag.generator import generate
 from src.rag.store import RetrievedPassage
 
