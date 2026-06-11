@@ -1,5 +1,7 @@
 # Bilingual RAG Assistant (Arabic / English)
 
+[![CI](https://github.com/YousefZahran1/bilingual-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/YousefZahran1/bilingual-rag/actions/workflows/ci.yml)
+
 A retrieval-augmented question-answering system tuned for Saudi healthcare and insurance documents. Bilingual: ingest documents in Arabic, English, or mixed; ask in either language; get an answer in the language you asked, with citations to the source passages.
 
 > Built to demonstrate a production-flavoured RAG pipeline end-to-end: multilingual embeddings, vector search, FastAPI inference, Streamlit UI, and a real evaluation harness — not a toy notebook.
@@ -56,7 +58,7 @@ docs (AR/EN/mixed)
 
 | Choice | Rejected | Why |
 |---|---|---|
-| `intfloat/multilingual-e5-small` | OpenAI ada-002 | Free, runs locally, EU-friendly for German employers, handles Arabic well |
+| `intfloat/multilingual-e5-small` | OpenAI ada-002 | No API key needed, runs locally, strong Arabic morphology support |
 | Chroma (local persistent) | Pinecone | Self-contained demo; no API key gate for reviewers |
 | FastAPI | Flask, Django | Async + types + auto OpenAPI |
 | Streamlit | React/Next | Ships in hours; recruiters know it |

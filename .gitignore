@@ -16,6 +16,7 @@ chroma_db/
 .DS_Store
 .idea/
 .vscode/
+[C] *.md
 *.egg-info/
 dist/
 build/

@@ -27,7 +27,7 @@ huggingface-cli upload --repo-type=space YousefZahran1/bilingual-rag . .
 ```
 
 The Space build kicks off automatically. Watch the logs at
-`https://huggingface.co/spaces/YousefZahran1/bilingual-rag` -> Settings -> Logs.
+`[Space not yet deployed]` → once live: https://huggingface.co/spaces/YousefZahran1/bilingual-rag → Settings → Logs.
 
 Build time on free CPU tier: ~5 minutes (most of which is downloading
 `intfloat/multilingual-e5-small` once).
