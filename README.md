@@ -10,13 +10,20 @@ A retrieval-augmented question-answering system tuned for Saudi healthcare and i
 
 See **Quick start** below — works in ~2 minutes with no API key (mock provider included). Docker also available via `deploy/docker-compose.yml`. HF Spaces deployment instructions in [`docs/DEMO.md`](docs/DEMO.md).
 
-## Eval (this commit, HTTP-verified)
+## Eval (this commit, 34 docs / 89 questions — full breakdown in `docs/EVAL.md`)
 
 ```
-retrieval_recall@4:   8/8  (100%)
-language_match:       8/8  (100%)
-keyword_coverage:     3/17 (18%)   <- mock provider; rises with a real LLM key
+                      dense          hybrid_rerank
+retrieval_recall@1:   59/71 (83%)    58/71 (82%)
+retrieval_recall@4:   65/71 (92%)    67/71 (94%)
+keyword_coverage:     35/95 (37%)   38/95 (40%)   <- mock provider; rises with a real LLM key
+language_match:       89/89 (100%)  89/89 (100%)
 ```
+
+Hybrid+rerank isn't a uniform win — it's a clear improvement on non-numeric
+questions (recall@4 hits 100%) and a small regression on numeric-exact-match
+questions. `docs/EVAL.md` has the full breakdown and why. `retrieval_mode` is
+exposed as a real API/UI toggle so both are usable, not just the default.
 
 ## Why this exists
 
@@ -26,33 +33,37 @@ Saudi healthcare and insurance documents arrive in mixed Arabic + English. Off-t
 
 ```
 docs (AR/EN/mixed)
-        │
+        │  language-aware chunker
         ▼
-   ┌──────────┐
-   │ Chunker  │  language-aware splits, RTL-safe
-   └────┬─────┘
-        │
-        ▼
-   ┌──────────────────┐
-   │ Multilingual-e5  │  intfloat/multilingual-e5-small
-   └────┬─────────────┘
-        │ embeddings
-        ▼
-   ┌────────────┐
-   │  Chroma    │  local persistent vector store
-   └────┬───────┘
-        │ top-k passages
-        ▼
-   ┌──────────┐
-   │ Generator│  pluggable: OpenAI / Anthropic / local model
-   └────┬─────┘
-        │ answer + citations
-        ▼
+   ┌──────────────────┐        ┌──────────────┐
+   │ Multilingual-e5  │        │  BM25 index  │  rank_bm25, Arabic-aware
+   │  (Chroma store)  │        │ (JSONL sidecar) tokenization (lang.py)
+   └────┬─────────────┘        └──────┬───────┘
+        │ dense top-20                │ sparse top-20
+        └──────────────┬──────────────┘
+                        ▼
+              ┌───────────────────┐
+              │  RRF fusion (k=60) │  fusion.py
+              └─────────┬──────────┘
+                        ▼ top-20 fused
+              ┌───────────────────────┐
+              │  Cross-encoder rerank │  mmarco-mMiniLMv2-L12-H384-v1
+              └─────────┬──────────────┘
+                        ▼ top-4
+              ┌──────────┐
+              │ Generator│  pluggable: OpenAI / Anthropic / mock
+              └────┬─────┘
+                   │ answer + citations
+                   ▼
    ┌──────────┐    ┌──────────┐
-   │ FastAPI  │ ─▶ │ Streamlit│
+   │ FastAPI  │ ─▶ │ Streamlit│  retrieval_mode: dense | hybrid_rerank
    │  /chat   │    │   UI     │
    └──────────┘    └──────────┘
 ```
+
+`VectorStore.retrieve()` (dense-only) is still directly reachable via
+`retrieval_mode: "dense"` — it's the explicit "before" comparison arm, not
+dead code.
 
 ## Tech stack and why
 
@@ -60,6 +71,10 @@ docs (AR/EN/mixed)
 |---|---|---|
 | `intfloat/multilingual-e5-small` | OpenAI ada-002 | No API key needed, runs locally, strong Arabic morphology support |
 | Chroma (local persistent) | Pinecone | Self-contained demo; no API key gate for reviewers |
+| `rank-bm25` (BM25Okapi) | Elasticsearch/OpenSearch | One light pure-Python dependency vs standing up a search service for a demo repo |
+| Reciprocal Rank Fusion, fixed k=60 | Tuned/learned fusion weight | Literature-standard constant; tuning a hyperparameter against this project's own 89-question eval set and citing the result would be a credibility risk |
+| `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | `BAAI/bge-reranker-v2-m3` | ~80MB vs ~2.2GB; keeps the same small-model philosophy as picking `e5-small` over larger e5 variants |
+| JSONL sidecar for the BM25 index | Binary-serializing `BM25Okapi` | Human-diffable, safe to commit, survives library/Python version upgrades; rebuild from tokenized text is fast and pure Python |
 | FastAPI | Flask, Django | Async + types + auto OpenAPI |
 | Streamlit | React/Next | Ships in hours; recruiters know it |
 | Ragas-style eval | manual eval | Reproducible numbers committed in `docs/EVAL.md` |
@@ -114,7 +129,7 @@ For free-tier hosting: Hugging Face Spaces (Streamlit template) or Fly.io.
 
 ## Roadmap
 
-See `docs/ROADMAP.md`. Highlights: hybrid retrieval (BM25 + dense), Ragas integration, deploy live demo.
+See `docs/ROADMAP.md`. Hybrid retrieval (BM25 + dense) and cross-encoder re-ranking shipped in v0.2. Next: Ragas integration, deploy live demo.
 
 ## License
 

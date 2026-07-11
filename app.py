@@ -28,6 +28,17 @@ if not (HERE / "chroma_db").exists():
         [sys.executable, "-m", "src.rag.ingest", "data/sample"],
         check=True,
     )
+    # Warm the cross-encoder re-ranker too, same reasoning as the Dockerfile:
+    # reranking only happens at query time, so without this it would
+    # lazy-download on the first live chat request instead of at boot.
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from src.rag.reranker import CrossEncoderReranker; CrossEncoderReranker().warm()",
+        ],
+        check=True,
+    )
 
 # 2) Then start Streamlit
 os.environ.setdefault("LLM_PROVIDER", "mock")

@@ -20,6 +20,13 @@ with st.sidebar:
     st.title("Bilingual RAG")
     st.caption("Arabic / English question answering over your documents.")
     top_k = st.slider("Top-k passages", min_value=1, max_value=10, value=4)
+    retrieval_mode = st.selectbox(
+        "Retrieval mode",
+        ["hybrid_rerank", "dense"],
+        help="hybrid_rerank: BM25 + dense fused with RRF, then cross-encoder "
+        "reranked. dense: the original dense-only path. Ask the same "
+        "question in both modes to compare.",
+    )
     if st.button("Clear history"):
         st.session_state.history = []
 
@@ -34,7 +41,7 @@ if st.button("Ask") and question.strip():
         try:
             r = httpx.post(
                 f"{API_URL}/chat",
-                json={"question": question, "top_k": top_k},
+                json={"question": question, "top_k": top_k, "retrieval_mode": retrieval_mode},
                 timeout=60,
             )
             r.raise_for_status()

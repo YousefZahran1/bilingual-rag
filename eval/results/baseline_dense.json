@@ -1,0 +1,189 @@
+{
+  "metrics": {
+    "n_questions": 8,
+    "mode": "dense",
+    "top_k": 4,
+    "retrieval_recall@1": {
+      "hit": 8,
+      "total": 8
+    },
+    "retrieval_recall@4": {
+      "hit": 8,
+      "total": 8
+    },
+    "keyword_coverage": {
+      "hit": 3,
+      "total": 17
+    },
+    "language_match": {
+      "hit": 8,
+      "total": 8
+    },
+    "abstain_correct": {
+      "hit": 0,
+      "total": 0
+    }
+  },
+  "per_question": [
+    {
+      "question": "What is the daily room rate cap for shared rooms?",
+      "tags": [],
+      "is_answerable": true,
+      "expected_sources": [
+        "01_health_plan_en.md"
+      ],
+      "retrieved_sources": [
+        "01_health_plan_en.md",
+        "05_eligibility_mixed.md",
+        "02_health_plan_ar.md",
+        "03_claims_process_en.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 3,
+      "language_match": true,
+      "abstain_hit": null
+    },
+    {
+      "question": "ما هو الحد الأقصى لرسوم الغرفة اليومية للغرف المشتركة؟",
+      "tags": [],
+      "is_answerable": true,
+      "expected_sources": [
+        "02_health_plan_ar.md"
+      ],
+      "retrieved_sources": [
+        "02_health_plan_ar.md",
+        "05_eligibility_mixed.md",
+        "02_health_plan_ar.md",
+        "04_claims_process_ar.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null
+    },
+    {
+      "question": "How many days do I have to submit a reimbursement?",
+      "tags": [],
+      "is_answerable": true,
+      "expected_sources": [
+        "03_claims_process_en.md"
+      ],
+      "retrieved_sources": [
+        "03_claims_process_en.md",
+        "05_eligibility_mixed.md",
+        "04_claims_process_ar.md",
+        "02_health_plan_ar.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null
+    },
+    {
+      "question": "Are cosmetic surgeries covered?",
+      "tags": [],
+      "is_answerable": true,
+      "expected_sources": [
+        "01_health_plan_en.md"
+      ],
+      "retrieved_sources": [
+        "01_health_plan_en.md",
+        "05_eligibility_mixed.md",
+        "03_claims_process_en.md",
+        "02_health_plan_ar.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 3,
+      "language_match": true,
+      "abstain_hit": null
+    },
+    {
+      "question": "هل علاج العقم مغطى؟",
+      "tags": [],
+      "is_answerable": true,
+      "expected_sources": [
+        "02_health_plan_ar.md"
+      ],
+      "retrieved_sources": [
+        "02_health_plan_ar.md",
+        "02_health_plan_ar.md",
+        "04_claims_process_ar.md",
+        "05_eligibility_mixed.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 2,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null
+    },
+    {
+      "question": "What documents are required for out-of-network reimbursement?",
+      "tags": [],
+      "is_answerable": true,
+      "expected_sources": [
+        "03_claims_process_en.md"
+      ],
+      "retrieved_sources": [
+        "03_claims_process_en.md",
+        "01_health_plan_en.md",
+        "05_eligibility_mixed.md",
+        "04_claims_process_ar.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 3,
+      "language_match": true,
+      "abstain_hit": null
+    },
+    {
+      "question": "كم عدد زيارات متابعة الحمل المغطاة؟",
+      "tags": [],
+      "is_answerable": true,
+      "expected_sources": [
+        "02_health_plan_ar.md"
+      ],
+      "retrieved_sources": [
+        "02_health_plan_ar.md",
+        "02_health_plan_ar.md",
+        "04_claims_process_ar.md",
+        "05_eligibility_mixed.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 1,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null
+    },
+    {
+      "question": "How long do I have to appeal a denied claim?",
+      "tags": [],
+      "is_answerable": true,
+      "expected_sources": [
+        "03_claims_process_en.md"
+      ],
+      "retrieved_sources": [
+        "03_claims_process_en.md",
+        "05_eligibility_mixed.md",
+        "04_claims_process_ar.md",
+        "02_health_plan_ar.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null
+    }
+  ]
+}

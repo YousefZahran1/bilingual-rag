@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from typing import Optional
 
+from .bm25_index import BM25Index
 from .chunker import chunk_document
 from .store import VectorStore
 
@@ -15,7 +17,7 @@ from .store import VectorStore
 SUPPORTED_SUFFIXES = {".md", ".txt"}
 
 
-def ingest_path(path: Path, store: VectorStore) -> int:
+def ingest_path(path: Path, store: VectorStore, bm25_index: Optional[BM25Index] = None) -> int:
     total = 0
     if path.is_file():
         files = [path]
@@ -27,6 +29,8 @@ def ingest_path(path: Path, store: VectorStore) -> int:
         text = f.read_text(encoding="utf-8", errors="ignore")
         chunks = chunk_document(text, source=str(f.relative_to(path.parent)))
         store.add(chunks)
+        if bm25_index is not None:
+            bm25_index.add(chunks)
         total += len(chunks)
         print(f"  + {f.name}: {len(chunks)} chunks")
     return total
@@ -40,11 +44,12 @@ def main() -> None:
 
     store = VectorStore()
     if args.reset:
-        col = store._get_collection()  # noqa: SLF001
-        col.delete(where={})
+        store.reset()
         print("Collection reset.")
-    n = ingest_path(args.path, store)
-    print(f"Done. Indexed {n} chunks.")
+    bm25_index = BM25Index()
+    n = ingest_path(args.path, store, bm25_index=bm25_index)
+    bm25_index.save()
+    print(f"Done. Indexed {n} chunks. BM25 sidecar saved.")
 
 
 if __name__ == "__main__":

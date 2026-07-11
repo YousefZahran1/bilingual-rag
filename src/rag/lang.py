@@ -5,6 +5,8 @@ Unicode Arabic block are sufficient and far faster.
 """
 from __future__ import annotations
 
+import re
+
 ARABIC_RANGES = (
     (0x0600, 0x06FF),  # Arabic
     (0x0750, 0x077F),  # Arabic Supplement
@@ -39,3 +41,46 @@ def detect_language(text: str) -> str:
     if ratio_ar <= 0.3:
         return "en"
     return "mixed"
+
+
+# --- BM25 tokenization helpers ---
+#
+# This is light normalization, not stemming: it strips diacritics/tatweel and
+# unifies a few letter variants, but it does NOT strip attached Arabic
+# prefixes (ال، و، ف، ب، ك، ل) or suffixes (ها، هم، كم، ...). "والتأمين" and
+# "التأمين" remain different tokens. A real system would use a proper
+# morphological analyzer (e.g. CAMeL Tools); this is intentionally simple.
+
+_DIACRITICS = re.compile(
+    "[ؐ-ًؚ-ٰٟۖ-ۭ]"
+)
+_TATWEEL = "ـ"
+_ALEF_VARIANTS = str.maketrans(
+    {
+        "إ": "ا",  # إ -> ا
+        "أ": "ا",  # أ -> ا
+        "آ": "ا",  # آ -> ا
+        "ة": "ه",  # ة -> ه
+        "ى": "ي",  # ى -> ي
+    }
+)
+
+_TOKEN_PATTERN = re.compile(r"\w+", re.UNICODE)
+
+
+def normalize_arabic(text: str) -> str:
+    """Strip diacritics/tatweel and unify common letter variants."""
+    text = _DIACRITICS.sub("", text)
+    text = text.replace(_TATWEEL, "")
+    return text.translate(_ALEF_VARIANTS)
+
+
+def tokenize(text: str) -> list[str]:
+    """Normalize + lowercase + split into word tokens for BM25 indexing.
+
+    Numbers are kept as tokens deliberately: exact numeric matching (SAR
+    figures, percentages, day-counts) is BM25's main value-add over dense
+    embeddings, which tend to blur numeric detail.
+    """
+    normalized = normalize_arabic(text).lower()
+    return _TOKEN_PATTERN.findall(normalized)

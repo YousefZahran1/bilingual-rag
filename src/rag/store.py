@@ -22,6 +22,7 @@ class RetrievedPassage:
     chunk_id: int
     language: str
     score: float
+    rerank_score: float | None = None
 
 
 class VectorStore:
@@ -51,12 +52,20 @@ class VectorStore:
             ef = embedding_functions.SentenceTransformerEmbeddingFunction(
                 model_name=self.embedding_model
             )
+            self._embedder = ef
             self._collection = self._client.get_or_create_collection(
                 name=self.collection_name,
                 embedding_function=ef,
                 metadata={"hnsw:space": "cosine"},
             )
         return self._collection
+
+    def reset(self) -> None:
+        """Drop and recreate the collection (used by `ingest.py --reset`)."""
+        self._get_collection()  # ensure client exists
+        self._client.delete_collection(name=self.collection_name)
+        self._collection = None
+        self._get_collection()
 
     # --- public API ---
     def add(self, chunks: List[Chunk]) -> None:
@@ -69,7 +78,12 @@ class VectorStore:
             {"source": c.source, "chunk_id": c.chunk_id, "language": c.language}
             for c in chunks
         ]
-        col.upsert(ids=ids, documents=docs, metadatas=metas)
+        # multilingual-e5 expects "passage: ..." prefix on the document side
+        # (mirrors the "query: ..." prefix already applied in retrieve()).
+        # Embeddings are computed explicitly so the prefix never leaks into
+        # the stored/displayed text or citations.
+        embeddings = self._embedder([f"passage: {c.text}" for c in chunks])
+        col.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=embeddings)
 
     def retrieve(self, query: str, top_k: int = 4) -> List[RetrievedPassage]:
         col = self._get_collection()

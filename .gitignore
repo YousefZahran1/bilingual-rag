@@ -12,6 +12,7 @@ data/processed/
 *.sqlite
 .streamlit/secrets.toml
 chroma_db/
+index_data/
 *.log
 .DS_Store
 .idea/

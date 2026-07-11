@@ -3,7 +3,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    image: bilingual-rag:0.1.0
+    image: bilingual-rag:0.2.0
     ports:
       - "8000:8000"
     environment:
@@ -13,11 +13,12 @@ services:
       TOP_K: ${TOP_K:-4}
     volumes:
       - chroma:/data/chroma_db
+      - bm25index:/data/index_data
   ui:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    image: bilingual-rag:0.1.0
+    image: bilingual-rag:0.2.0
     depends_on:
       - api
     environment:
@@ -28,3 +29,4 @@ services:
 
 volumes:
   chroma:
+  bm25index:
