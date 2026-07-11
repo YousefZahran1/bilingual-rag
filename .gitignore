@@ -17,7 +17,7 @@ index_data/
 .DS_Store
 .idea/
 .vscode/
-[C] *.md
+\[C\] *.md
 *.egg-info/
 dist/
 build/
