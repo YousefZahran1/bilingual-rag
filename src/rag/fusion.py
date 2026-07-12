@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import List, Tuple
 
 from .bm25_index import BM25Index
+from .query_router import is_numeric_query
 from .reranker import CrossEncoderReranker
 from .store import RetrievedPassage, VectorStore
 
@@ -68,3 +69,25 @@ def retrieve_pipeline(
     ]
 
     return reranker.rerank(query, candidates, top_k=top_k)
+
+
+def smart_retrieve(
+    query: str,
+    store: VectorStore,
+    bm25_index: BM25Index,
+    reranker: CrossEncoderReranker,
+    top_k: int = 4,
+    fusion_top_n: int = 20,
+) -> List[RetrievedPassage]:
+    """Routes numeric-answer-expecting queries to BM25 alone (empirically
+    the best measured method for them, see docs/EVAL.md's "Numeric query
+    router" section) and everything else through the full hybrid+rerank
+    pipeline (which hits a perfect 100% recall@4 on non-numeric questions).
+    The cross-encoder reranker is what hurts numeric questions specifically
+    -- BM25 and RRF fusion don't -- so numeric queries skip it entirely
+    rather than getting a diluted middle-ground treatment."""
+    if is_numeric_query(query):
+        return bm25_index.search(query, top_k=top_k)
+    return retrieve_pipeline(
+        query, store, bm25_index, reranker, top_k=top_k, fusion_top_n=fusion_top_n
+    )

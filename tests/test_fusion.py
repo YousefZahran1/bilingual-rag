@@ -1,7 +1,7 @@
 """reciprocal_rank_fusion correctness on hand-built rankings, and
 retrieve_pipeline wiring with fake store/bm25/reranker doubles (no live
 models)."""
-from src.rag.fusion import reciprocal_rank_fusion, retrieve_pipeline
+from src.rag.fusion import reciprocal_rank_fusion, retrieve_pipeline, smart_retrieve
 from src.rag.store import RetrievedPassage
 
 
@@ -43,16 +43,20 @@ def test_results_sorted_descending():
 class FakeStore:
     def __init__(self, passages):
         self._passages = passages
+        self.calls = []
 
     def retrieve(self, query, top_k=4):
+        self.calls.append((query, top_k))
         return self._passages[:top_k]
 
 
 class FakeBM25:
     def __init__(self, passages):
         self._passages = passages
+        self.calls = []
 
     def search(self, query, top_k=4):
+        self.calls.append((query, top_k))
         return self._passages[:top_k]
 
 
@@ -94,3 +98,27 @@ def test_retrieve_pipeline_calls_reranker_with_top_k():
     retrieve_pipeline("query", store, bm25, reranker, top_k=1, fusion_top_n=20)
 
     assert reranker.calls[0][2] == 1
+
+
+def test_smart_retrieve_routes_numeric_query_to_bm25_only():
+    store = FakeStore([_passage("a.md")])
+    bm25 = FakeBM25([_passage("b.md")])
+    reranker = FakeReranker()
+
+    result = smart_retrieve("How many dental cleanings are covered per year?", store, bm25, reranker, top_k=4)
+
+    assert bm25.calls
+    assert not store.calls
+    assert not reranker.calls
+    assert [p.source for p in result] == ["b.md"]
+
+
+def test_smart_retrieve_routes_non_numeric_query_to_hybrid_rerank():
+    store = FakeStore([_passage("a.md")])
+    bm25 = FakeBM25([_passage("a.md")])
+    reranker = FakeReranker()
+
+    smart_retrieve("Does this plan cover veterinary care for my pet?", store, bm25, reranker, top_k=4)
+
+    assert store.calls
+    assert reranker.calls

@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from src.rag.bm25_index import BM25Index
-from src.rag.fusion import retrieve_pipeline
+from src.rag.fusion import retrieve_pipeline, smart_retrieve
 from src.rag.generator import generate
 from src.rag.reranker import CrossEncoderReranker
 from src.rag.store import VectorStore
@@ -30,9 +30,13 @@ _reranker = CrossEncoderReranker()
 class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000)
     top_k: int = Field(default=4, ge=1, le=20)
-    # Defaults to the new hybrid+rerank pipeline now that eval shows it's an
-    # overall improvement; "dense" stays available for comparison/demo.
-    retrieval_mode: Literal["dense", "hybrid_rerank"] = "hybrid_rerank"
+    # Defaults to "smart" -- routes numeric questions to BM25 alone and
+    # everything else through hybrid+rerank, matching or beating every
+    # individual mode on every measured subset (recall@4: 97% overall vs
+    # hybrid_rerank's 94%, with a genuine bonus on multi-document questions
+    # too -- see docs/EVAL.md's "Numeric query router" section).
+    # "dense"/"hybrid_rerank" stay available for comparison/demo.
+    retrieval_mode: Literal["dense", "hybrid_rerank", "smart"] = "smart"
 
 
 class Citation(BaseModel):
@@ -57,6 +61,10 @@ def health() -> dict:
 def chat(req: ChatRequest) -> ChatResponse:
     if req.retrieval_mode == "hybrid_rerank":
         passages = retrieve_pipeline(
+            req.question, _store, _bm25_index, _reranker, top_k=req.top_k
+        )
+    elif req.retrieval_mode == "smart":
+        passages = smart_retrieve(
             req.question, _store, _bm25_index, _reranker, top_k=req.top_k
         )
     else:

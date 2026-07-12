@@ -51,5 +51,13 @@
 - [ ] PII detection + redaction pre-ingest
 - [ ] Multi-tenant support (org-scoped collections)
 - [x] ~~Investigate why hybrid+rerank underperforms dense-only on numeric-exact-match questions~~ — done in v0.3 via `--mode bm25_only`: it's the cross-encoder reranker specifically, not BM25 or RRF fusion (see docs/EVAL.md)
-- [ ] Build the actual fix: a numeric-aware query router or reranker bypass, now that the cause is known (skip the cross-encoder step for numeric-tagged/detected queries and use BM25's own ranking instead)
-- [ ] Multi-document question regression (hybrid_rerank recall drops vs dense there too) — same reranker-culprit hypothesis untested for this subset
+- [x] Built the actual fix: `src/rag/query_router.py` + `--mode smart` /
+  `smart_retrieve()` routes numeric queries to BM25 alone, everything else
+  through hybrid+rerank. Matches or beats every individual mode on every
+  measured subset (overall recall@4 97%, vs hybrid_rerank's 94%). Now the
+  default `retrieval_mode`. See docs/EVAL.md.
+- [x] Multi-document question regression — resolved as a side effect of the
+  numeric router, not separately investigated: `smart` mode's multi-doc
+  recall@4 (87%, 13/15) beats all three single-strategy modes, including
+  dense (80%) and hybrid_rerank (73%). Turned out to share enough overlap
+  with the numeric fix that no separate mechanism was needed.

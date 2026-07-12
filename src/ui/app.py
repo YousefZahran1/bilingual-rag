@@ -25,10 +25,14 @@ with st.sidebar:
     top_k = st.slider("Top-k passages", min_value=1, max_value=10, value=4)
     retrieval_mode = st.selectbox(
         "Retrieval mode",
-        ["hybrid_rerank", "dense"],
-        help="hybrid_rerank: BM25 + dense fused with RRF, then cross-encoder "
-        "reranked. dense: the original dense-only path. Ask the same "
-        "question in both modes to compare.",
+        ["smart", "hybrid_rerank", "dense"],
+        help="smart (default): routes numeric questions (counts, caps, "
+        "percentages) to BM25 alone -- the reranker specifically hurts "
+        "those -- everything else through hybrid_rerank. Matches or beats "
+        "every other mode on every measured subset. hybrid_rerank: BM25 + "
+        "dense fused with RRF, then cross-encoder reranked, unconditionally. "
+        "dense: the original dense-only path. Ask the same question in "
+        "different modes to compare.",
     )
     if st.button("Clear history"):
         st.session_state.history = []

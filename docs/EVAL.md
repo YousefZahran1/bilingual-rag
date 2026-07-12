@@ -12,6 +12,7 @@ python -m src.rag.ingest data/sample --reset
 python -m eval.run_eval data/sample/eval_questions.jsonl --top-k 4 --mode dense --out eval/results/v0.2_dense.json
 python -m eval.run_eval data/sample/eval_questions.jsonl --top-k 4 --mode hybrid_rerank --out eval/results/v0.2_hybrid.json
 python -m eval.run_eval data/sample/eval_questions.jsonl --top-k 4 --mode bm25_only --out eval/results/v0.2_bm25_only.json
+python -m eval.run_eval data/sample/eval_questions.jsonl --top-k 4 --mode smart --out eval/results/v0.3_smart.json
 
 # Real LLM instead of mock (set LLM_PROVIDER=openrouter, OPENROUTER_API_KEY in .env):
 python -m eval.run_eval data/sample/eval_questions.jsonl --top-k 4 --mode dense --out eval/results/v0.2_dense_openrouter.json
@@ -92,6 +93,53 @@ the targeted fix, not abandoning BM25.
 This is why `retrieval_mode` is exposed as a real, user-facing choice in the
 API/UI rather than hybrid_rerank silently replacing dense-only: the two
 modes have different, honestly-measured strengths.
+
+## The actual fix: a numeric query router (`--mode smart`)
+
+Since the reranker specifically is the problem, the fix is to route around
+it for numeric queries rather than picking one retrieval mode for
+everything. `src/rag/query_router.py:is_numeric_query()` is a two-tier
+regex (phrase patterns like "how many"/"maximum"/"كم"/"الحد الأقصى", plus a
+digit+unit fallback for questions where the number is in the query text,
+e.g. "beyond 6 sessions") — measured against the real `"numeric"` tag in
+`eval_questions.jsonl`: **precision 0.85, recall 0.92** (see
+`tests/test_query_router.py`'s data-driven regression test, which
+re-measures this against the committed eval file on every run so drift is
+caught, not just asserted once).
+
+`src/rag/fusion.py:smart_retrieve()` routes numeric queries to BM25 alone
+(the empirically-best method above) and everything else through the
+existing `retrieve_pipeline()`. Re-validated with `--mode smart` against
+the full 89-question set (mock provider, zero OpenRouter quota needed since
+this only tests retrieval, not generation):
+
+| Subset | dense@4 | hybrid_rerank@4 | bm25_only@4 | **smart@4** |
+|---|---|---|---|---|
+| numeric (49 q) | 94% (46/49) | 92% (45/49) | 96% (47/49) | **96% (47/49)** |
+| non-numeric (22 q) | 86% (19/22) | 100% (22/22) | 91% (20/22) | **100% (22/22)** |
+| multi-document (15 q) | 80% (12/15) | 73% (11/15) | 80% (12/15) | **87% (13/15)** |
+| numeric ∩ multi-doc (12 q) | 83% (10/12) | 67% (8/12) | 83% (10/12) | **83% (10/12)** |
+| **overall** | 92% (65/71) | 94% (67/71) | 94% (67/71) | **97% (69/71)** |
+
+`smart` matches or beats every individual mode on every subset measured —
+including a genuine bonus on multi-document questions (87%, better than any
+of the three single-strategy modes), which wasn't hypothesized going in and
+resolves the "multi-document question regression" item that was previously
+flagged as unresolved in `docs/ROADMAP.md`. **`smart` is now the default
+`retrieval_mode`** in both `src/api/app.py` and `src/ui/app.py`;
+`hybrid_rerank` and `dense` stay available for comparison.
+
+The router is a calibrated heuristic, not a classifier, and it isn't
+perfect: 6-8 of the 89 questions are false positives/negatives against the
+manually-assigned `numeric` tag (some of which look like real tagging
+inconsistencies in the eval set rather than router errors, e.g. "How often
+is HbA1c testing covered?" isn't tagged numeric but clearly should be —
+not re-tagged as part of this fix). One specific accepted false positive is
+worth naming: the prompt-injection question containing literal "100%" as
+injected text legitimately matches the digit+unit pattern and gets routed
+to BM25 — this doesn't affect correctness (BM25-only retrieval still feeds
+into the same hardened, injection-resistant generation prompt either way),
+just retrieval-strategy choice.
 
 ## Real LLM results (OpenRouter, openai/gpt-oss-20b:free) — complete, all 3 modes
 

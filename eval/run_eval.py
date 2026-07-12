@@ -21,13 +21,17 @@ fusion, then cross-encoder rerank).
 rerank -- a diagnostic mode added to check whether the numeric-question
 regression seen in hybrid_rerank comes from BM25 itself or from the fusion+
 rerank steps diluting BM25's exact-match hit (see docs/EVAL.md).
-All three draw from the same CLI so before/after numbers can't drift apart
+--mode smart uses src.rag.fusion.smart_retrieve() -- routes numeric-answer
+queries to BM25 alone (the bm25_only finding) and everything else through
+hybrid_rerank, using src.rag.query_router.is_numeric_query(). The actual
+fix built from the bm25_only diagnosis, not just another diagnostic mode.
+All four draw from the same CLI so before/after numbers can't drift apart
 from being run as separate scripts.
 
 Usage:
     python -m eval.run_eval data/sample/eval_questions.jsonl --top-k 4 --mode dense
     python -m eval.run_eval data/sample/eval_questions.jsonl --top-k 4 --mode bm25_only --out eval/results/v0.2_bm25_only.json
-    python -m eval.run_eval data/corpus/eval_questions.jsonl --top-k 4 --mode hybrid_rerank --out eval/results/v0.2_hybrid.json
+    python -m eval.run_eval data/sample/eval_questions.jsonl --top-k 4 --mode smart --out eval/results/v0.3_smart.json
 """
 from __future__ import annotations
 
@@ -39,7 +43,7 @@ from typing import Iterable, List, Optional
 from dotenv import load_dotenv
 
 from src.rag.bm25_index import BM25Index
-from src.rag.fusion import retrieve_pipeline
+from src.rag.fusion import retrieve_pipeline, smart_retrieve
 from src.rag.generator import generate
 from src.rag.lang import detect_language
 from src.rag.reranker import CrossEncoderReranker
@@ -145,6 +149,13 @@ def _retrieve(
         # regression documented in docs/EVAL.md comes from BM25 itself or
         # from the fusion+rerank steps diluting BM25's exact-match hit.
         return bm25_index.search(query, top_k=top_k)
+    if mode == "smart":
+        # Routes numeric-answer-expecting queries to BM25 alone (the
+        # bm25_only finding above) and everything else through
+        # hybrid_rerank. See src/rag/query_router.py.
+        return smart_retrieve(
+            query, store, bm25_index, reranker, top_k=top_k, fusion_top_n=max(20, top_k * 5)
+        )
     return store.retrieve(query, top_k=top_k)
 
 
@@ -152,7 +163,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("eval_path", type=Path)
     ap.add_argument("--top-k", type=int, default=4)
-    ap.add_argument("--mode", choices=["dense", "hybrid_rerank", "bm25_only"], default="dense")
+    ap.add_argument("--mode", choices=["dense", "hybrid_rerank", "bm25_only", "smart"], default="dense")
     ap.add_argument(
         "--out",
         type=Path,
@@ -162,8 +173,8 @@ def main() -> None:
     args = ap.parse_args()
 
     store = VectorStore()
-    bm25_index = BM25Index.load() if args.mode in ("hybrid_rerank", "bm25_only") else None
-    reranker = CrossEncoderReranker() if args.mode == "hybrid_rerank" else None
+    bm25_index = BM25Index.load() if args.mode in ("hybrid_rerank", "bm25_only", "smart") else None
+    reranker = CrossEncoderReranker() if args.mode in ("hybrid_rerank", "smart") else None
 
     items = list(_load_jsonl(args.eval_path))
     print(f"Loaded {len(items)} eval questions.")
