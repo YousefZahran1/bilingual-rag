@@ -72,7 +72,11 @@ def _expected_sources(item: dict) -> List[str]:
 
 
 def _basenames(passages) -> List[str]:
-    return [Path(p.source).name for p in passages]
+    # Split on both separators explicitly rather than pathlib.Path(...).name,
+    # which is platform-native: a backslash-separated source string (e.g.
+    # produced by ingesting on Windows) doesn't split correctly when this
+    # code runs on Linux, since POSIX paths don't treat '\' as a separator.
+    return [p.source.replace("\\", "/").rsplit("/", 1)[-1] for p in passages]
 
 
 def _looks_like_abstain(answer: str) -> bool:
