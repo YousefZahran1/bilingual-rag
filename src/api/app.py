@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import List, Literal
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
@@ -11,6 +12,8 @@ from src.rag.fusion import retrieve_pipeline
 from src.rag.generator import generate
 from src.rag.reranker import CrossEncoderReranker
 from src.rag.store import VectorStore
+
+load_dotenv()
 
 app = FastAPI(
     title="Bilingual RAG Assistant",

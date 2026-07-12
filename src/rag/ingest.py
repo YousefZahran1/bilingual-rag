@@ -9,9 +9,13 @@ import argparse
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
+
 from .bm25_index import BM25Index
 from .chunker import chunk_document
 from .store import VectorStore
+
+load_dotenv()
 
 
 SUPPORTED_SUFFIXES = {".md", ".txt"}

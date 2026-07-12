@@ -16,11 +16,17 @@ Metrics:
 
 --mode dense uses VectorStore.retrieve() (dense-only, unchanged baseline).
 --mode hybrid_rerank uses src.rag.fusion.retrieve_pipeline() (BM25+dense RRF
-fusion, then cross-encoder rerank) -- both draw from the same CLI so before/
-after numbers can't drift apart from being run as separate scripts.
+fusion, then cross-encoder rerank).
+--mode bm25_only uses BM25Index.search() directly, isolated from fusion/
+rerank -- a diagnostic mode added to check whether the numeric-question
+regression seen in hybrid_rerank comes from BM25 itself or from the fusion+
+rerank steps diluting BM25's exact-match hit (see docs/EVAL.md).
+All three draw from the same CLI so before/after numbers can't drift apart
+from being run as separate scripts.
 
 Usage:
     python -m eval.run_eval data/sample/eval_questions.jsonl --top-k 4 --mode dense
+    python -m eval.run_eval data/sample/eval_questions.jsonl --top-k 4 --mode bm25_only --out eval/results/v0.2_bm25_only.json
     python -m eval.run_eval data/corpus/eval_questions.jsonl --top-k 4 --mode hybrid_rerank --out eval/results/v0.2_hybrid.json
 """
 from __future__ import annotations
@@ -30,6 +36,8 @@ import json
 from pathlib import Path
 from typing import Iterable, List, Optional
 
+from dotenv import load_dotenv
+
 from src.rag.bm25_index import BM25Index
 from src.rag.fusion import retrieve_pipeline
 from src.rag.generator import generate
@@ -37,20 +45,49 @@ from src.rag.lang import detect_language
 from src.rag.reranker import CrossEncoderReranker
 from src.rag.store import VectorStore
 
-# Light EN/AR "refused to answer" phrase list -- not exhaustive, just enough
-# to score the mock provider's structural inability to abstain vs a real
-# LLM's actual refusals.
+load_dotenv()
+
+# Light EN/AR "refused to answer" phrase list -- not exhaustive. Calibrated
+# against a real 2026-07-12 OpenRouter run (openai/gpt-oss-20b:free): the
+# original list scored 0/17 on a batch that was, on manual read of the saved
+# answer text, 17/17 genuine correct refusals -- the model's actual phrasing
+# ("I'm sorry, but that information isn't provided in the passages", "لا
+# أعلم" vs the listed "لا أعرف") just didn't match the original narrow list.
+# Broadened from those real examples rather than guessed. Still a heuristic,
+# not a classifier -- if the model's phrasing drifts again, re-check
+# eval/results/*.json's saved "answer" field before trusting this metric.
 ABSTAIN_MARKERS = [
     "i don't know",
     "i do not know",
     "cannot find",
     "not in the passages",
+    "isn't provided in",
+    "is not provided in",
+    "not provided in the",
+    "do not contain any information",
+    "don't contain any information",
     "not covered in",
     "no information",
+    "can't provide that",
+    "cannot provide that",
+    "can't comply",
+    "cannot comply",
+    "can't confirm",
+    "cannot confirm",
+    "does not indicate that",
+    "do not indicate that",
+    "does not indicate whether",
+    "do not indicate whether",
+    "isn't available in",
+    "is not available in",
+    "not mentioned in",
     "لا أعرف",
+    "لا أعلم",
     "لا يوجد",
     "غير متوفر",
     "لم أجد",
+    "لا يمكنني",
+    "لا أستطيع",
 ]
 
 
@@ -80,7 +117,13 @@ def _basenames(passages) -> List[str]:
 
 
 def _looks_like_abstain(answer: str) -> bool:
-    lower = answer.lower()
+    # Normalize curly quotes to straight ones -- real models (confirmed on
+    # openai/gpt-oss-20b:free) consistently use U+2019 in contractions
+    # ("isn't", "can't"), which silently failed to match ASCII-apostrophe
+    # markers. This is why 0/17 genuine refusals scored as misses on the
+    # first real run before this fix.
+    normalized = answer.replace("’", "'").replace("‘", "'")
+    lower = normalized.lower()
     return any(marker in lower for marker in ABSTAIN_MARKERS)
 
 
@@ -96,6 +139,12 @@ def _retrieve(
         return retrieve_pipeline(
             query, store, bm25_index, reranker, top_k=top_k, fusion_top_n=max(20, top_k * 5)
         )
+    if mode == "bm25_only":
+        # Diagnostic mode: isolate BM25's own recall, no fusion/rerank in the
+        # way. Added specifically to test whether the numeric-question
+        # regression documented in docs/EVAL.md comes from BM25 itself or
+        # from the fusion+rerank steps diluting BM25's exact-match hit.
+        return bm25_index.search(query, top_k=top_k)
     return store.retrieve(query, top_k=top_k)
 
 
@@ -103,7 +152,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("eval_path", type=Path)
     ap.add_argument("--top-k", type=int, default=4)
-    ap.add_argument("--mode", choices=["dense", "hybrid_rerank"], default="dense")
+    ap.add_argument("--mode", choices=["dense", "hybrid_rerank", "bm25_only"], default="dense")
     ap.add_argument(
         "--out",
         type=Path,
@@ -113,7 +162,7 @@ def main() -> None:
     args = ap.parse_args()
 
     store = VectorStore()
-    bm25_index = BM25Index.load() if args.mode == "hybrid_rerank" else None
+    bm25_index = BM25Index.load() if args.mode in ("hybrid_rerank", "bm25_only") else None
     reranker = CrossEncoderReranker() if args.mode == "hybrid_rerank" else None
 
     items = list(_load_jsonl(args.eval_path))
@@ -128,6 +177,10 @@ def main() -> None:
     n_lang_match = 0
     n_abstain_eligible = 0
     n_abstain_correct = 0
+    n_generation_errors = 0
+    n_generated = 0  # denominator for language_match -- errored questions
+    # never got a language to compare, so counting them against the rate
+    # (as the old `n_lang_match / n` did) understates it artificially.
 
     per_question = []
 
@@ -154,7 +207,35 @@ def main() -> None:
             n_recall_1 += int(recall_1_hit)
             n_recall_k += int(recall_k_hit)
 
-        result = generate(q, passages)
+        # Generation (an LLM API call) can fail independently of retrieval --
+        # a flaky free-tier provider response shouldn't discard the whole
+        # run's progress. Recall metrics (computed above) still count for a
+        # failed question; keyword/language/abstain metrics don't.
+        try:
+            result = generate(q, passages)
+            generation_error = None
+        except Exception as exc:  # noqa: BLE001 -- deliberately broad: any provider failure must not kill the run
+            n_generation_errors += 1
+            per_question.append(
+                {
+                    "question": q,
+                    "tags": tags,
+                    "is_answerable": is_answerable,
+                    "expected_sources": expected,
+                    "retrieved_sources": basenames,
+                    "recall_1_hit": recall_1_hit,
+                    "recall_k_hit": recall_k_hit,
+                    "keyword_hits": None,
+                    "keyword_total": len(expected_keywords),
+                    "language_match": None,
+                    "abstain_hit": None,
+                    "generation_error": str(exc),
+                }
+            )
+            print(f"  [generation error] {q[:60]!r}: {exc}")
+            continue
+
+        n_generated += 1
         ans_lower = result.answer.lower()
         kw_hits = 0
         for kw in expected_keywords:
@@ -186,6 +267,8 @@ def main() -> None:
                 "keyword_total": len(expected_keywords),
                 "language_match": lang_hit,
                 "abstain_hit": abstain_hit,
+                "answer": result.answer,
+                "generation_error": generation_error,
             }
         )
 
@@ -196,8 +279,9 @@ def main() -> None:
         "retrieval_recall@1": {"hit": n_recall_1, "total": n_recall_eligible},
         f"retrieval_recall@{args.top_k}": {"hit": n_recall_k, "total": n_recall_eligible},
         "keyword_coverage": {"hit": n_keywords_hit, "total": n_keywords_total},
-        "language_match": {"hit": n_lang_match, "total": n},
+        "language_match": {"hit": n_lang_match, "total": n_generated},
         "abstain_correct": {"hit": n_abstain_correct, "total": n_abstain_eligible},
+        "generation_errors": n_generation_errors,
     }
 
     def pct(hit: int, total: int) -> str:
@@ -214,10 +298,12 @@ def main() -> None:
     print(
         f"keyword_coverage:        {n_keywords_hit}/{n_keywords_total}  ({pct(n_keywords_hit, n_keywords_total)})"
     )
-    print(f"language_match:          {n_lang_match}/{n}  ({pct(n_lang_match, n)})")
+    print(f"language_match:          {n_lang_match}/{n_generated}  ({pct(n_lang_match, n_generated)})")
     print(
         f"abstain_correct:         {n_abstain_correct}/{n_abstain_eligible}  ({pct(n_abstain_correct, n_abstain_eligible)})"
     )
+    if n_generation_errors:
+        print(f"generation_errors:       {n_generation_errors}/{n}  (excluded from keyword/language/abstain above)")
 
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
