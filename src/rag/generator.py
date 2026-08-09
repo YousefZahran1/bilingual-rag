@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import List, Protocol
+from typing import Protocol
 
 from .lang import detect_language
 from .store import RetrievedPassage
@@ -17,7 +17,7 @@ from .store import RetrievedPassage
 @dataclass
 class AnswerWithCitations:
     answer: str
-    citations: List[dict]
+    citations: list[dict]
     language: str
 
 
@@ -37,7 +37,7 @@ class MockProvider:
         return body[:300] + ("..." if len(body) > 300 else "")
 
 
-def _build_prompt(query: str, passages: List[RetrievedPassage], lang: str) -> tuple[str, str]:
+def _build_prompt(query: str, passages: list[RetrievedPassage], lang: str) -> tuple[str, str]:
     # The instructions below explicitly cover prompt-injection: this was
     # tightened after a real eval run (2026-07-12, LLM_PROVIDER=openrouter)
     # found the model complied with 6 of 9 "should refuse" questions,
@@ -96,7 +96,7 @@ def _provider() -> LLMProvider:
     raise ValueError(f"Unknown LLM_PROVIDER: {name}")
 
 
-def generate(query: str, passages: List[RetrievedPassage]) -> AnswerWithCitations:
+def generate(query: str, passages: list[RetrievedPassage]) -> AnswerWithCitations:
     lang = detect_language(query)
     sys, user = _build_prompt(query, passages, lang)
     provider = _provider()

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import List
 
 from .chunker import Chunk
 
@@ -68,7 +67,7 @@ class VectorStore:
         self._get_collection()
 
     # --- public API ---
-    def add(self, chunks: List[Chunk]) -> None:
+    def add(self, chunks: list[Chunk]) -> None:
         if not chunks:
             return
         col = self._get_collection()
@@ -85,7 +84,7 @@ class VectorStore:
         embeddings = self._embedder([f"passage: {c.text}" for c in chunks])
         col.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=embeddings)
 
-    def retrieve(self, query: str, top_k: int = 4) -> List[RetrievedPassage]:
+    def retrieve(self, query: str, top_k: int = 4) -> list[RetrievedPassage]:
         col = self._get_collection()
         # multilingual-e5 expects "query: ..." prefix for query-side
         prefixed = query if query.startswith(("query:", "passage:")) else f"query: {query}"

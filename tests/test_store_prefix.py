@@ -39,7 +39,7 @@ def _store_with_fakes():
 
 
 def test_add_embeds_passages_with_prefix():
-    store, embedder, collection = _store_with_fakes()
+    store, embedder, _collection = _store_with_fakes()
     chunks = [
         Chunk(text="Outpatient cap is SAR 1,500/day.", source="a.md", chunk_id=0, language="en"),
         Chunk(text="سقف الغرفة اليومية 1500 ريال.", source="b.md", chunk_id=0, language="ar"),
@@ -53,7 +53,7 @@ def test_add_embeds_passages_with_prefix():
 
 
 def test_add_stores_unprefixed_text():
-    store, embedder, collection = _store_with_fakes()
+    store, _embedder, collection = _store_with_fakes()
     chunks = [Chunk(text="Outpatient cap is SAR 1,500/day.", source="a.md", chunk_id=0, language="en")]
 
     store.add(chunks)

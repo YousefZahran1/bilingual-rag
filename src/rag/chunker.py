@@ -7,8 +7,8 @@ then a hard window if a sentence is too long.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import List, Iterable
 
 from .lang import detect_language
 
@@ -48,7 +48,7 @@ def _windowed(text: str, budget: int, overlap: int) -> Iterable[str]:
         i += budget - overlap
 
 
-def chunk_document(text: str, source: str) -> List[Chunk]:
+def chunk_document(text: str, source: str) -> list[Chunk]:
     if not text or not text.strip():
         return []
     language = detect_language(text)

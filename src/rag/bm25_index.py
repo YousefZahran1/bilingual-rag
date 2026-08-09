@@ -12,7 +12,6 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import List, Optional
 
 from rank_bm25 import BM25Okapi
 
@@ -25,9 +24,9 @@ SIDECAR_FILENAME = "bm25_chunks.jsonl"
 
 
 class BM25Index:
-    def __init__(self, chunks: Optional[List[Chunk]] = None):
-        self._chunks: List[Chunk] = list(chunks) if chunks else []
-        self._bm25: Optional[BM25Okapi] = None
+    def __init__(self, chunks: list[Chunk] | None = None):
+        self._chunks: list[Chunk] = list(chunks) if chunks else []
+        self._bm25: BM25Okapi | None = None
         if self._chunks:
             self._rebuild()
 
@@ -36,16 +35,16 @@ class BM25Index:
         self._bm25 = BM25Okapi(tokenized)
 
     @classmethod
-    def build(cls, chunks: List[Chunk]) -> "BM25Index":
+    def build(cls, chunks: list[Chunk]) -> BM25Index:
         return cls(chunks)
 
-    def add(self, chunks: List[Chunk]) -> None:
+    def add(self, chunks: list[Chunk]) -> None:
         if not chunks:
             return
         self._chunks.extend(chunks)
         self._rebuild()
 
-    def search(self, query: str, top_k: int = 4) -> List[RetrievedPassage]:
+    def search(self, query: str, top_k: int = 4) -> list[RetrievedPassage]:
         if not self._chunks or self._bm25 is None:
             return []
         scores = self._bm25.get_scores(tokenize(query))
@@ -61,7 +60,7 @@ class BM25Index:
             for i in ranked_idx
         ]
 
-    def save(self, path: Optional[str] = None) -> None:
+    def save(self, path: str | None = None) -> None:
         target = Path(path) if path else self._default_path()
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("w", encoding="utf-8") as f:
@@ -69,7 +68,7 @@ class BM25Index:
                 f.write(json.dumps(c.to_dict(), ensure_ascii=False) + "\n")
 
     @classmethod
-    def load(cls, path: Optional[str] = None) -> "BM25Index":
+    def load(cls, path: str | None = None) -> BM25Index:
         source = Path(path) if path else cls._default_path()
         if not source.exists():
             return cls([])
