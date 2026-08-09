@@ -14,8 +14,8 @@ Usage:
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "sample"
 EVAL_PATH = DATA_DIR / "eval_questions.jsonl"
@@ -30,7 +30,7 @@ def _load_jsonl(path: Path) -> Iterable[dict]:
             yield json.loads(line)
 
 
-def _expected_sources(item: dict) -> List[str]:
+def _expected_sources(item: dict) -> list[str]:
     if item.get("expected_sources"):
         return list(item["expected_sources"])
     if item.get("expected_source"):
@@ -38,14 +38,14 @@ def _expected_sources(item: dict) -> List[str]:
     return []
 
 
-def validate(eval_path: Path = EVAL_PATH, data_dir: Path = DATA_DIR) -> Tuple[List[str], List[str]]:
+def validate(eval_path: Path = EVAL_PATH, data_dir: Path = DATA_DIR) -> tuple[list[str], list[str]]:
     """Returns (errors, warnings). Errors mean the eval set is factually
     wrong (a keyword that isn't in the document, a source that doesn't
     exist). Warnings mean the ground truth is ambiguous, not necessarily
     wrong."""
-    errors: List[str] = []
-    warnings: List[str] = []
-    all_docs: Dict[str, str] = {p.name: p.read_text(encoding="utf-8") for p in data_dir.glob("*.md")}
+    errors: list[str] = []
+    warnings: list[str] = []
+    all_docs: dict[str, str] = {p.name: p.read_text(encoding="utf-8") for p in data_dir.glob("*.md")}
 
     for i, item in enumerate(_load_jsonl(eval_path), start=1):
         question = item.get("question", "<missing question>")

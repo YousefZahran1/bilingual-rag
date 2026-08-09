@@ -37,8 +37,8 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Optional
 
 from dotenv import load_dotenv
 
@@ -104,7 +104,7 @@ def _load_jsonl(path: Path) -> Iterable[dict]:
             yield json.loads(line)
 
 
-def _expected_sources(item: dict) -> List[str]:
+def _expected_sources(item: dict) -> list[str]:
     if item.get("expected_sources"):
         return list(item["expected_sources"])
     if item.get("expected_source"):
@@ -112,7 +112,7 @@ def _expected_sources(item: dict) -> List[str]:
     return []
 
 
-def _basenames(passages) -> List[str]:
+def _basenames(passages) -> list[str]:
     # Split on both separators explicitly rather than pathlib.Path(...).name,
     # which is platform-native: a backslash-separated source string (e.g.
     # produced by ingesting on Windows) doesn't split correctly when this
@@ -136,8 +136,8 @@ def _retrieve(
     top_k: int,
     mode: str,
     store: VectorStore,
-    bm25_index: Optional[BM25Index],
-    reranker: Optional[CrossEncoderReranker],
+    bm25_index: BM25Index | None,
+    reranker: CrossEncoderReranker | None,
 ):
     if mode == "hybrid_rerank":
         return retrieve_pipeline(
