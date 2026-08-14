@@ -1,9 +1,57 @@
 # Evaluation Results
 
-Run on the corpus in `data/sample/` (34 documents) with the eval set in
-`data/sample/eval_questions.jsonl` (89 questions). v0.1 had 5 documents and 8
+Run on the corpus in `data/sample/` (34 documents). v0.1 had 5 documents and 8
 questions — recall@4 was saturated at 100%, which meant the eval wasn't
 actually testing anything. This is the honest v0.2 read.
+
+> **Everything from here until "v0.5: honest re-run" below uses `data/sample/eval_questions.jsonl`
+> as it was at the time (89 questions) and, where noted, a `language_match`
+> metric that had a real bug — kept as the historical record of that
+> investigation, not current numbers. See v0.5 for what's current.**
+
+## v0.5: honest re-run (eval set grown to 118 questions, language_match bug fixed)
+
+Two things were found and fixed after the sections below were originally written:
+
+1. **`language_match` was a vacuous metric.** `eval/run_eval.py` compared
+   `result.language` (the *question's* detected language, computed inside
+   `generate()`) against `detect_language(q)` — the same question's
+   language, again. It was comparing the question to itself and could
+   never fail. Fixed to score `detect_language(result.answer) == q_lang`
+   instead — the metric now actually measures something.
+2. **`data/sample/eval_questions.jsonl` had silently grown from 89 to 118
+   questions** in a prior commit, without the eval numbers below being
+   regenerated. The committed `eval/results/v0.4_*.json` snapshots record
+   `n_questions: 89` even though the file they were supposedly run against
+   already had 118 lines at that commit.
+
+Fresh mock-provider run, all four modes, current 118-question set
+(`eval/results/v0.5_{dense,hybrid_rerank,bm25_only,smart}.json`):
+
+| Metric | dense | **hybrid_rerank** | bm25_only | smart (default) |
+|---|---|---|---|---|
+| retrieval_recall@1 | 86/100 (86%) | **89/100 (89%)** | 81/100 (81%) | 84/100 (84%) |
+| retrieval_recall@4 | 91/100 (91%) | **93/100 (93%)** | 91/100 (91%) | **93/100 (93%)** |
+| keyword_coverage | 87/153 (57%) | **88/153 (58%)** | 76/153 (50%) | 80/153 (52%) |
+| language_match | **106/118 (90%)** | 94/118 (80%) | 103/118 (87%) | 96/118 (81%) |
+| abstain_correct | 0/18 (0%) | 0/18 (0%) | 0/18 (0%) | 0/18 (0%) |
+
+**`smart` is no longer the best mode on any of these four metrics** —
+`hybrid_rerank` leads recall@1, recall@4 (tied with smart), keyword_coverage,
+and is a close second on language_match behind dense. This directly
+contradicts the "smart matches or beats every individual mode on every
+subset" conclusion in the "honest finding" investigation below, which was
+run against the smaller, differently-tagged 89-question set. The numeric
+query router (`src/rag/query_router.py`) hasn't been re-validated or
+re-tuned against the current 118-question set — tracked as an open item in
+`docs/ROADMAP.md`. `abstain_correct` is 0/18 under mock as expected (mock
+can't refuse — see "Mock provider caveats" below); it isn't evidence the
+router got worse at abstaining, mock never could.
+
+Everything below this section is the original investigation, kept as
+historical record. Its specific numbers (89 questions, `language_match`
+under the old buggy metric) are stale; its retrieval mechanics
+(RRF, reranker, BM25) still describe the real system.
 
 ## How to reproduce
 

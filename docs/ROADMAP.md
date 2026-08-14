@@ -105,6 +105,25 @@
   which handicaps Arabic.
 - [ ] Update `docs/TOKENIZATION.md` numbers from `MAX_TOKENS = 400` to the new
   200 default.
+- [ ] **Re-tune/re-validate the numeric query router (`smart` mode) against
+  the current 118-question `data/sample/eval_questions.jsonl`.** The eval
+  set silently grew from 89 to 118 questions after the router was tuned and
+  validated against the smaller set; a fresh honest run (mock, all 4 modes,
+  `eval/results/v0.5_*.json`) shows `smart` no longer uniformly winning —
+  `hybrid_rerank` now leads recall@1, keyword_coverage, and language_match.
+  Needs the same subset-by-tag investigation `docs/EVAL.md`'s "honest
+  finding" section did originally, re-run against the current question set,
+  to find out whether the router's regex heuristic needs updating or the
+  smart-mode routing decision itself needs revisiting.
+- [x] Fixed a real bug in the eval harness: `language_match` compared the
+  question's own detected language to itself (`result.language` was already
+  `detect_language(query)`), so it could never fail — see
+  `eval/run_eval.py`. Now scores `detect_language(result.answer)` instead.
+  Top-line mock numbers in the README's Eval section and `docs/EVAL.md`
+  updated to the honest post-fix results; the older real-LLM `language_match`
+  numbers and the numeric/non-numeric/multi-doc subset breakdown in
+  `docs/EVAL.md` still reflect the old vacuous metric and haven't been
+  re-run — flagged inline in both docs, not silently left as claims.
 
 ## Stretch
 - [ ] Fine-tuned reranker on Saudi healthcare corpus

@@ -35,42 +35,64 @@ flowchart TD
     Gen --> API["FastAPI /chat"] --> UI["Streamlit UI (RTL-aware)"]
 ```
 
-Detailed per-module flowcharts (chunker, ingestion/store, generator, request lifecycle, eval harness) live in [`docs/diagrams/`](docs/diagrams/).
+Detailed per-module flowcharts, hand-checked line-by-line against the code they document:
+
+| Diagram | Module | Notes |
+|---|---|---|
+| ![chunker](docs/diagrams/01-chunker-v01.jpg) | `src/rag/chunker.py` | **v0.1 baseline** — depicts the original character-budget chunker (ar 700 / en 1100 / mixed 900, overlap 120). Superseded in v0.3+ by the token-aware chunker (`CHUNK_MAX_TOKENS=200`, `CHUNK_STRATEGY=token\|structure`); kept as the documented starting point of the chunking evolution in `RETRIEVAL_TUNING.md`. |
+| ![store](docs/diagrams/02-ingestion-store.jpg) | `src/rag/ingest.py`, `src/rag/store.py` | Dense ingestion/retrieval path: lazy Chroma init, `source::chunk_id` idempotent upsert, e5 `query:` prefix, `score = 1 − distance`. This is the `dense` retrieval mode; BM25/RRF/rerank layers sit on top (see `PIPELINE.md`). |
+| ![generator](docs/diagrams/03-generator.jpg) | `src/rag/generator.py` | Bilingual prompt selection (AR/EN), provider dispatch via `LLM_PROVIDER`, mock extractive fallback. Note: citations are built directly from the retrieved passages, not parsed from the model's answer. OpenRouter provider added after this diagram. |
+| ![lifecycle](docs/diagrams/04-request-lifecycle.jpg) | `src/api/app.py`, `src/ui/app.py` | Streamlit → httpx → FastAPI (Pydantic validation) → retrieve + generate → typed response → RTL-aware rendering. Drawn before the `retrieval_mode` toggle was added. |
+| ![eval](docs/diagrams/05-eval-harness.jpg) | `eval/run_eval.py` | The three baseline metrics (recall@k, keyword_coverage, language_match) on the original 8-question set. The harness has since grown (89 questions, abstain metrics, `--mode`). |
+
+Prompts used to generate these diagrams are in [`docs/diagrams/PROMPTS.md`](docs/diagrams/PROMPTS.md).
 
 Four things this pipeline is built to get right for bilingual (Arabic/English) retrieval, all real and measured, not just architectural claims:
 
 1. **Native multilingual embeddings** — `intfloat/multilingual-e5-small`, not English embeddings with documents translated on the fly.
 2. **Hybrid search** — BM25 (with genuine Arabic-aware light normalization: diacritics/tatweel/alef-variant unification, *not* full morphological stemming — see `docs/TOKENIZATION.md`) fused with dense retrieval via Reciprocal Rank Fusion (k=60), so exact-term and semantic matching both contribute.
 3. **Cross-lingual reranking** — `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` covers 14 languages including Arabic; a numeric-query router (`query_router.py`) bypasses it specifically for numeric questions, where it was empirically found to hurt (`docs/EVAL.md`).
-4. **Language-consistent synthesis** — the generator answers in the language the question was asked in; measured at **100% language_match (89/89)** across every mock and real-LLM eval run this project has recorded.
+4. **Language-consistent synthesis** — the generator answers in the language the question was asked in. **Correction:** the previously-reported "100% language_match (89/89)" was measured with a vacuous metric (it compared the question's language to itself, not the answer's — see `docs/EVAL.md`). Fixed to score the actual answer's language; honest current number is **81% (96/118)** under `smart` mode, mock provider — see the Eval table below.
 
-`VectorStore.retrieve()` (dense-only) and `retrieve_pipeline()` (unconditional hybrid+rerank) both stay reachable via `retrieval_mode: dense | hybrid_rerank | smart` on `/chat` — `smart` (the router above) is the default because it matches or beats the other two on every measured subset, not because the alternatives are dead code; they're the explicit "before" comparison arms.
+`VectorStore.retrieve()` (dense-only) and `retrieve_pipeline()` (unconditional hybrid+rerank) both stay reachable via `retrieval_mode: dense | hybrid_rerank | smart` on `/chat`. **Note:** `smart` is still the default, but after fixing the language_match metric and re-running against the eval set (which had silently grown from 89 to 118 questions since the numbers below were first recorded), `smart` no longer strictly dominates the other modes on every metric — see the Eval table below and `docs/ROADMAP.md` for the follow-up to re-tune the numeric router against the current eval set.
 
 ## Run locally
 
 See **Quick start** below — works in ~2 minutes with no API key (mock provider included). Docker also available via `deploy/docker-compose.yml`. HF Spaces deployment instructions in [`docs/DEMO.md`](docs/DEMO.md).
 
-## Eval (this commit, 34 docs / 89 questions — full breakdown in `docs/EVAL.md`)
+## Eval (this commit, 34 docs / 118 questions — full breakdown in `docs/EVAL.md`)
 
-**Mock LLM** (retrieval-only, zero API cost):
+**Mock LLM** (retrieval-only, zero API cost). Re-run after two fixes: the
+eval set had silently grown from 89 to 118 questions without the numbers
+below being refreshed, and `language_match` was a vacuous metric (it
+compared the question's language to itself, so it could never fail) —
+both are fixed in these numbers (`eval/results/v0.5_*.json`):
 
-| Metric | **smart** (default) | dense | hybrid_rerank | bm25_only |
+| Metric | dense | **hybrid_rerank** | bm25_only | smart (default) |
 |---|---|---|---|---|
-| retrieval_recall@1 | **59/71 (83%)** | 58/71 (82%) | 57/71 (80%) | 57/71 (80%) |
-| retrieval_recall@4 | **69/71 (97%)** | 67/71 (94%) | 67/71 (94%) | 66/71 (93%) |
-| keyword_coverage | 29/95 (31%) | 30/95 (32%) | 29/95 (31%) | 28/95 (29%) |
-| language_match | 89/89 (100%) | 89/89 (100%) | 89/89 (100%) | 89/89 (100%) |
+| retrieval_recall@1 | 86/100 (86%) | **89/100 (89%)** | 81/100 (81%) | 84/100 (84%) |
+| retrieval_recall@4 | 91/100 (91%) | **93/100 (93%)** | 91/100 (91%) | **93/100 (93%)** |
+| keyword_coverage | 87/153 (57%) | **88/153 (58%)** | 76/153 (50%) | 80/153 (52%) |
+| language_match | **106/118 (90%)** | 94/118 (80%) | 103/118 (87%) | 96/118 (81%) |
 
-**Real LLM** (OpenRouter, `openai/gpt-oss-20b:free`) — predates the
-token-based chunking switch and hasn't been re-run for `smart` mode yet
-(blocked on a working OpenRouter key, see `docs/ROADMAP.md`); recall/
-language numbers are provider-independent, so the mock table above is a
-close proxy for what a fresh run would show:
+`smart` is still the default `retrieval_mode` but is **not** the best
+performer on this honest run — `hybrid_rerank` leads on 3 of 4 metrics.
+The numeric-query router's routing logic was tuned against the smaller,
+differently-tagged 89-question set and hasn't been re-validated against
+the current 118-question set. This is a known open item, tracked in
+`docs/ROADMAP.md`, not a claim this README is making.
+
+**Real LLM** (OpenRouter, `openai/gpt-oss-20b:free`) — predates both the
+token-based chunking switch and the language_match fix above, and hasn't
+been re-run for `smart` mode yet (blocked on a working OpenRouter key, see
+`docs/ROADMAP.md`). **The `language_match` row below used the old vacuous
+metric and has not been re-verified — treat it as unverified, not as a
+current claim:**
 
 | Metric | dense | hybrid_rerank | bm25_only |
 |---|---|---|---|
 | keyword_coverage | 69% | 70% | 67% |
-| language_match | 100% | 100% | 100% |
+| language_match (unverified, old metric) | 100% | 100% | 100% |
 | abstain_correct | 100% | 100% | 100% |
 
 `smart` (a numeric query router — routes counts/percentages/caps to BM25
@@ -155,7 +177,16 @@ Copy `.env.example` to `.env` to configure the embedding model, vector/index dir
 
 ## Results
 
-Eval on this commit: 34 documents, 89 questions (full breakdown in [`docs/EVAL.md`](docs/EVAL.md)).
+> **Stale, pending re-investigation.** The subset-by-tag breakdown below
+> (numeric/non-numeric/multi-doc) and its "`smart` wins everywhere"
+> conclusion were measured on the old 89-question eval set. The eval set
+> has since grown to 118 questions, and the top-line honest numbers in the
+> Eval section above show `smart` no longer uniformly winning. This
+> breakdown has not been re-run against the current set — see
+> `docs/ROADMAP.md`. Kept below as historical record of the original
+> investigation, not a current claim.
+
+Eval on the 89-question set this investigation was run against (full breakdown in [`docs/EVAL.md`](docs/EVAL.md)).
 
 **Retrieval recall@4, mock LLM, by mode:**
 
@@ -167,18 +198,18 @@ multi-doc (15)    80%      73%             80%         87%
 overall (71)      92%      94%             94%         97%
 ```
 
-`smart` matches or beats every individual mode on every subset — including
-multi-document questions, which no single retrieval strategy won outright.
-It routes numeric queries to BM25 alone and everything else through
-hybrid+rerank, because isolating BM25 (`--mode bm25_only`) showed the
-cross-encoder reranker specifically hurts numeric-exact-match retrieval,
-not the fusion step or BM25 itself.
+`smart` matched or beat every individual mode on every subset in this
+89-question run — including multi-document questions, which no single
+retrieval strategy won outright. It routes numeric queries to BM25 alone
+and everything else through hybrid+rerank, because isolating BM25
+(`--mode bm25_only`) showed the cross-encoder reranker specifically hurt
+numeric-exact-match retrieval, not the fusion step or BM25 itself.
 
-**Real LLM (OpenRouter, `openai/gpt-oss-20b:free`), across dense / hybrid_rerank / bm25_only:**
+**Real LLM (OpenRouter, `openai/gpt-oss-20b:free`), across dense / hybrid_rerank / bm25_only** — also from the 89-question run; `language_match` used the old vacuous metric and is unverified:
 
 ```
 keyword_coverage:  69% / 70% / 67%   (mock: 37% / 40% / — )
-language_match:    100% / 100% / 100%
+language_match:    100% / 100% / 100%   (unverified, old metric — see Eval section above)
 abstain_correct:   100% / 100% / 100%   (51/51 unanswerable questions correctly refused)
 ```
 
