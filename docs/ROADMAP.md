@@ -40,7 +40,8 @@
   refusals to score as failures) — see docs/EVAL.md's "quieter finding"
 - [x] Token-based chunking: replaced the language-aware character-budget
   chunker with one measured against the real embedding-model tokenizer
-  (`MAX_TOKENS = 400`, ~20% headroom under the 512-token limit). recall@4
+  (`MAX_TOKENS = 400` at the time, ~20% headroom under the 512-token limit;
+  default later swept to 200 in v0.4 — see docs/RETRIEVAL_TUNING.md). recall@4
   unchanged (69/71), recall@1 up by 1 question — see docs/EVAL.md and
   docs/TOKENIZATION.md for the measured AR/EN token density this
   replaces an estimate with.
@@ -57,6 +58,53 @@
 - [ ] Citation hover-preview in UI
 - [ ] Conversation memory (short-term, per session)
 - [ ] Live demo on Hugging Face Spaces or Fly.io
+
+## v0.4 (now) — real corpus + unified pipeline
+
+- [x] Real CCHI corpus (`data/real`): Unified Contract, Essential Benefit
+  Package, drug formulary, EBP tiers — extracted from the official PDFs with
+  PyMuPDF (`scripts/extract_pdfs.py`; better reading order + RTL Arabic than
+  pypdf, which stays as fallback via `EXTRACT_ENGINE`; `.docx` also supported).
+  15 grounded eval questions in `data/real/eval_questions.jsonl`.
+- [x] Chunk-size sweep on the real corpus: default `CHUNK_MAX_TOKENS` 400 → 200
+  (overlap 40 → 30). BM25 recall@1 93→100%, BM25 keyword_coverage 19→46%,
+  dense keyword_coverage 27→35%; synthetic set improved too. Full log in
+  `docs/RETRIEVAL_TUNING.md`.
+- [x] Structure-aware chunking (`CHUNK_STRATEGY=structure`): segments start at
+  heading / numbered-clause / lettered-sub-point boundaries, whole clauses are
+  packed to the token budget. A/B at the same 200-token budget: dense recall@1
+  67→80%, BM25 recall@1 87→100%, keyword coverage ~doubled. Citations now land
+  on real clauses (e.g. the Dependent definition, clause 20).
+- [x] Parent-child ("small-to-big") retrieval (`src/rag/parent_child.py`):
+  children ≤200 tok nested strictly inside parents ≤900 tok (75 parents / 404
+  children on `data/real`). Context keyword coverage 92→96%; cleaner grounded
+  generation on multi-part questions.
+- [x] Unified production pipeline (`src/rag/pipeline.py`, `UnifiedIndex`):
+  metadata inference (`doc_id, doc_type, version, effective_date, language,
+  clause_number, parent_id`) + doc-type routing + metadata pre-filtering +
+  hybrid dense+BM25+RRF over children + parent expansion. **15/15 parent
+  recall, 100% context keyword coverage** on the real corpus — strongest
+  configuration measured.
+- [x] Two-stage hierarchical retrieval (`retrieve_two_stage`): parent-summary
+  document routing → scoped hybrid → cross-encoder rerank → parent expansion.
+  Verified correct; single-stage remains default at 4-doc scale (15/15 vs
+  14/15 — routing can only lose recall on a tiny corpus).
+- [x] Regression benchmark gate: `scripts/bench_pipeline.py` builds + scores a
+  corpus against its eval set, non-zero exit on recall/coverage regression.
+  Convention: every major new document adds 5–10 grounded Q&A pairs.
+- [x] End-to-end real-LLM validation on the real corpus (OpenRouter,
+  `gpt-oss-20b:free`): co-pay 30 SAR, dependent age 25, dental-implant
+  exclusion — all correct, cited, language-matched (incl. Arabic question →
+  Arabic answer from English source).
+- [x] Relicensed MIT → PolyForm Noncommercial 1.0.0 (commercial use requires
+  permission).
+- [ ] Wire `UnifiedIndex.retrieve` into FastAPI `/chat` + Streamlit (metadata
+  filters as UI facets) — the remaining integration step before deploy.
+- [ ] Re-run two-stage with the multilingual reranker
+  (`mmarco-mMiniLMv2`) locally; sandbox test used an English cross-encoder,
+  which handicaps Arabic.
+- [ ] Update `docs/TOKENIZATION.md` numbers from `MAX_TOKENS = 400` to the new
+  200 default.
 
 ## Stretch
 - [ ] Fine-tuned reranker on Saudi healthcare corpus

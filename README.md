@@ -11,12 +11,14 @@ A bilingual Arabic/English retrieval-augmented generation (RAG) system built for
 - Reranks fused candidates with a cross-lingual cross-encoder, bypassed for numeric questions by a query router that routes them to BM25 alone instead.
 - Detects the query language and answers in that language, with right-to-left (RTL) text handling in the Streamlit UI so Arabic answers render correctly.
 - Serves through a FastAPI backend with a Streamlit chat UI, and ships a real evaluation harness with retrieval recall@k, keyword coverage, language-match, and abstain-correctness metrics.
+- Ships a **real regulatory corpus** (`data/real`): four Council of Health Insurance (CCHI) documents — Unified Contract, Essential Benefit Package, drug formulary, EBP tiers — extracted from the official PDFs with PyMuPDF (`scripts/extract_pdfs.py`, RTL-Arabic-aware, `.docx` also supported), with 15 grounded eval questions.
+- Includes a **unified production retrieval pipeline** (`src/rag/pipeline.py`): doc-type routing → structure-aware or token chunking → parent-child split → hybrid dense+BM25+RRF over child chunks → parent-section expansion, plus an optional two-stage (document-routing + rerank) path for large corpora. See `docs/PIPELINE.md` and `docs/RETRIEVAL_TUNING.md`.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    Docs["Documents (AR / EN / mixed)"] --> Chunk["Token-aware chunker<br/>400 tokens/chunk, measured with the<br/>e5 tokenizer -- see docs/TOKENIZATION.md"]
+    Docs["Documents (AR / EN / mixed)"] --> Chunk["Token-aware chunker<br/>200 tokens/chunk (env-tunable), measured with the<br/>e5 tokenizer -- see docs/TOKENIZATION.md"]
     Chunk --> Dense["① Native multilingual embeddings<br/>intfloat/multilingual-e5-small (Chroma)"]
     Chunk --> BM25idx["BM25 index<br/>Arabic-aware light normalization (lang.py)"]
 
@@ -32,6 +34,8 @@ flowchart TD
     Passages --> Gen["④ Generator (pluggable: OpenAI / Anthropic / OpenRouter / mock)<br/>answers in the query's language -- 100% language_match, measured"]
     Gen --> API["FastAPI /chat"] --> UI["Streamlit UI (RTL-aware)"]
 ```
+
+Detailed per-module flowcharts (chunker, ingestion/store, generator, request lifecycle, eval harness) live in [`docs/diagrams/`](docs/diagrams/).
 
 Four things this pipeline is built to get right for bilingual (Arabic/English) retrieval, all real and measured, not just architectural claims:
 
@@ -89,6 +93,19 @@ only flagged theoretically before. System prompt hardened in response;
 (51/51 unanswerable questions that got a real answer). Full breakdown,
 including a self-caught bug in the abstain-detection scorer itself, in
 `docs/EVAL.md`.
+
+## Unified retrieval pipeline (real CCHI corpus)
+
+The newest layer, built and measured on the real corpus (`docs/PIPELINE.md`, tuning history in `docs/RETRIEVAL_TUNING.md`):
+
+- **Chunk-size sweep (400 → 200 tokens):** smaller chunks isolate individual clauses. On the real corpus, BM25 recall@1 went 93% → 100% and keyword coverage 19% → 46%; default is now `CHUNK_MAX_TOKENS=200`, `CHUNK_OVERLAP=30` (env-tunable).
+- **Structure-aware chunking** (`CHUNK_STRATEGY=structure`): CCHI documents are numbered (`1.21`, clause lists, definition entries), so chunks split on clause/section boundaries and pack whole clauses — never cutting a clause mid-sentence. A/B vs token chunking at the same budget: dense recall@1 67% → 80%, BM25 recall@1 87% → 100%, keyword coverage roughly doubled. Citations now point at real clauses, not arbitrary windows.
+- **Parent-child ("small-to-big") retrieval** (`src/rag/parent_child.py`): search small children (≤200 tok), hand the LLM their full parent sections (≤900 tok). Context keyword coverage 92% → 96% on the real corpus, with more complete multi-part answers.
+- **Unified index** (`UnifiedIndex.build` / `.retrieve`): infers per-doc metadata (`doc_id`, `doc_type`, `version`, `effective_date`, `language`, `clause_number`, `parent_id`), routes structured docs to the structure-aware chunker, supports metadata pre-filtering (e.g. `doc_type=formulary`) before search, and fuses dense + BM25 with RRF then expands to parents. **Measured: 15/15 parent recall and 100% context keyword coverage** on the real corpus — the strongest configuration tested.
+- **Two-stage hierarchical retrieval** (`retrieve_two_stage`): parent-summary routing → scoped hybrid search → cross-encoder rerank → parent expansion. Implemented and verified; on a 4-document corpus single-stage still wins (15/15 vs 14/15), so it stays opt-in until the corpus grows to hundreds of documents.
+- **Regression gate** (`scripts/bench_pipeline.py`): ingests a corpus and fails (non-zero exit) if recall or keyword coverage drops below threshold — a CI gate for new document ingests.
+
+Integration status: FastAPI `/chat` and the Streamlit UI still call the v0.3 retrieval path (`smart` router). Wiring them to `UnifiedIndex.retrieve` (with metadata filters surfaced as UI facets) is the remaining step before deploy.
 
 ## Why this exists
 
@@ -177,7 +194,7 @@ itself, in `docs/EVAL.md`.
 
 ## Roadmap
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md). Hybrid retrieval (BM25 + dense), cross-encoder re-ranking, the numeric query router (`smart` mode), real-LLM eval, and token-based chunking have shipped. Next: Ragas integration, streaming responses, deploy live demo.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md). Hybrid retrieval (BM25 + dense), cross-encoder re-ranking, the numeric query router (`smart` mode), real-LLM eval, token-based chunking, the real CCHI corpus, structure-aware chunking, parent-child retrieval, and the unified pipeline have shipped. Next: wire `UnifiedIndex` into `/chat` + UI, Ragas integration, streaming responses, deploy live demo.
 
 ## License
 
