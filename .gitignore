@@ -13,6 +13,8 @@ data/processed/
 .streamlit/secrets.toml
 chroma_db/
 index_data/
+unified_index/
+unified_index_*/
 *.log
 .DS_Store
 .idea/
@@ -26,3 +28,4 @@ build/
 *.bak
 data/sample/_*.jsonl
 data/sample/_*
+.gstack/

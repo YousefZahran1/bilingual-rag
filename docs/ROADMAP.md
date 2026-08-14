@@ -98,8 +98,15 @@
   Arabic answer from English source).
 - [x] Relicensed MIT → PolyForm Noncommercial 1.0.0 (commercial use requires
   permission).
-- [ ] Wire `UnifiedIndex.retrieve` into FastAPI `/chat` + Streamlit (metadata
-  filters as UI facets) — the remaining integration step before deploy.
+- [x] Wire `UnifiedIndex.retrieve`/`retrieve_two_stage` into FastAPI `/chat` +
+  Streamlit: `retrieval_mode: unified | unified_two_stage`, allowlisted
+  `filters` (doc_type/language/doc_id/version, 422 on unknown keys), 409
+  guard + `/health` status when the index isn't built, doc_type/language UI
+  facets, citations carrying doc_type/doc_title/clause. Eval parity added to
+  `eval/run_eval.py`. Not the default `retrieval_mode` — `unified` beats
+  `smart` on recall@4 and language_match but loses keyword_coverage, so per
+  the decision rule `smart` stays default. See `docs/PIPELINE.md`'s "Wired
+  in v0.5" section.
 - [ ] Re-run two-stage with the multilingual reranker
   (`mmarco-mMiniLMv2`) locally; sandbox test used an English cross-encoder,
   which handicaps Arabic.

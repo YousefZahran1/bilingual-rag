@@ -269,6 +269,9 @@ class UnifiedIndex:
                     chunk_id=len(parents),
                     language=meta.get("language", "en"),
                     score=round(float(score), 5),
+                    doc_type=p.get("doc_type") or meta.get("doc_type"),
+                    doc_title=p.get("doc_title"),
+                    clause=meta.get("clause_number") or None,
                 )
             )
             if len(parents) >= parent_k:
@@ -346,3 +349,30 @@ class UnifiedIndex:
             fused = [(f"{p.source}::{p.chunk_id}", p.rerank_score) for p in reranked]
         # Stage 4 -- expand to parents
         return self._expand_to_parents(fused, parent_k)
+
+
+def _main() -> None:
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Build/inspect a UnifiedIndex.")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    build_p = sub.add_parser("build", help="Ingest a corpus into a UnifiedIndex.")
+    build_p.add_argument("data_dir", help="Corpus directory (e.g. data/real)")
+    build_p.add_argument(
+        "--persist",
+        default=os.environ.get("UNIFIED_INDEX_DIR", "./unified_index"),
+        help="Index persist directory (default: $UNIFIED_INDEX_DIR or ./unified_index)",
+    )
+
+    args = ap.parse_args()
+    if args.cmd == "build":
+        idx = UnifiedIndex(args.persist)
+        info = idx.build(args.data_dir)
+        print(f"Built {info['parents']} parents / {info['children']} children into {args.persist}")
+        for name, route in info["routing"].items():
+            print(f"  {name:34} -> {route}")
+
+
+if __name__ == "__main__":
+    _main()

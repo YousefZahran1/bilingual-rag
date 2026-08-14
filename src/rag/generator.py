@@ -101,8 +101,18 @@ def generate(query: str, passages: list[RetrievedPassage]) -> AnswerWithCitation
     sys, user = _build_prompt(query, passages, lang)
     provider = _provider()
     answer = provider.complete(sys, user).strip()
-    citations = [
-        {"index": i + 1, "source": p.source, "chunk_id": p.chunk_id, "score": round(p.score, 3)}
-        for i, p in enumerate(passages)
-    ]
+    citations = []
+    for i, p in enumerate(passages):
+        c = {"index": i + 1, "source": p.source, "chunk_id": p.chunk_id, "score": round(p.score, 3)}
+        # UnifiedIndex passages carry doc metadata; legacy retrieval paths
+        # leave these keys out of the dict entirely (Citation still fills
+        # them in as null via its own defaults, so old clients that ignore
+        # unknown JSON fields see the same shape either way).
+        if p.doc_type is not None:
+            c["doc_type"] = p.doc_type
+        if p.doc_title is not None:
+            c["doc_title"] = p.doc_title
+        if p.clause is not None:
+            c["clause"] = p.clause
+        citations.append(c)
     return AnswerWithCitations(answer=answer, citations=citations, language=lang)

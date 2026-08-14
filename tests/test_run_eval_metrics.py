@@ -3,7 +3,7 @@
 No real retrieval call -- these test expected-source normalization, basename
 extraction, and abstain-phrase detection in isolation.
 """
-from eval.run_eval import _basenames, _expected_sources, _looks_like_abstain
+from eval.run_eval import _basenames, _expected_sources, _looks_like_abstain, _retrieve
 from src.rag.store import RetrievedPassage
 
 
@@ -70,3 +70,32 @@ def test_looks_like_abstain_detects_further_real_phrasing_variants():
     assert _looks_like_abstain("I’m sorry, but that information isn’t available in the provided passages.")
     assert _looks_like_abstain("The payout amount is not mentioned in the provided passages.")
     assert _looks_like_abstain("عذرًا، لا أستطيع المساعدة في ذلك.")
+
+
+class _FakeUnifiedIndex:
+    def __init__(self):
+        self.calls = []
+
+    def retrieve(self, query, parent_k=4):
+        self.calls.append(("retrieve", query, parent_k))
+        return ["single-stage-result"]
+
+    def retrieve_two_stage(self, query, parent_k=4):
+        self.calls.append(("retrieve_two_stage", query, parent_k))
+        return ["two-stage-result"]
+
+
+def test_retrieve_dispatches_unified_mode_to_single_stage():
+    fake = _FakeUnifiedIndex()
+    result = _retrieve("q", 4, "unified", store=None, bm25_index=None, reranker=None, unified=fake)
+    assert result == ["single-stage-result"]
+    assert fake.calls == [("retrieve", "q", 4)]
+
+
+def test_retrieve_dispatches_unified_two_stage_mode():
+    fake = _FakeUnifiedIndex()
+    result = _retrieve(
+        "q", 4, "unified_two_stage", store=None, bm25_index=None, reranker=None, unified=fake
+    )
+    assert result == ["two-stage-result"]
+    assert fake.calls == [("retrieve_two_stage", "q", 4)]

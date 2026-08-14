@@ -46,6 +46,7 @@ from src.rag.bm25_index import BM25Index
 from src.rag.fusion import retrieve_pipeline, smart_retrieve
 from src.rag.generator import generate
 from src.rag.lang import detect_language
+from src.rag.pipeline import UnifiedIndex
 from src.rag.reranker import CrossEncoderReranker
 from src.rag.store import VectorStore
 
@@ -138,7 +139,12 @@ def _retrieve(
     store: VectorStore,
     bm25_index: BM25Index | None,
     reranker: CrossEncoderReranker | None,
+    unified: UnifiedIndex | None = None,
 ):
+    if mode == "unified":
+        return unified.retrieve(query, parent_k=top_k)
+    if mode == "unified_two_stage":
+        return unified.retrieve_two_stage(query, parent_k=top_k)
     if mode == "hybrid_rerank":
         return retrieve_pipeline(
             query, store, bm25_index, reranker, top_k=top_k, fusion_top_n=max(20, top_k * 5)
@@ -163,7 +169,18 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("eval_path", type=Path)
     ap.add_argument("--top-k", type=int, default=4)
-    ap.add_argument("--mode", choices=["dense", "hybrid_rerank", "bm25_only", "smart"], default="dense")
+    ap.add_argument(
+        "--mode",
+        choices=["dense", "hybrid_rerank", "bm25_only", "smart", "unified", "unified_two_stage"],
+        default="dense",
+    )
+    ap.add_argument(
+        "--unified-dir",
+        type=str,
+        default=None,
+        help="UnifiedIndex persist dir for --mode unified/unified_two_stage "
+        "(must already be built via `python -m src.rag.pipeline build`)",
+    )
     ap.add_argument(
         "--out",
         type=Path,
@@ -175,6 +192,15 @@ def main() -> None:
     store = VectorStore()
     bm25_index = BM25Index.load() if args.mode in ("hybrid_rerank", "bm25_only", "smart") else None
     reranker = CrossEncoderReranker() if args.mode in ("hybrid_rerank", "smart") else None
+    unified = None
+    if args.mode in ("unified", "unified_two_stage"):
+        unified_dir = args.unified_dir or f"./unified_index_{args.eval_path.parent.name}"
+        unified = UnifiedIndex(unified_dir)
+        if not (Path(unified_dir) / "parents.json").exists():
+            raise SystemExit(
+                f"UnifiedIndex not built at {unified_dir}. Run:\n"
+                f"  python -m src.rag.pipeline build {args.eval_path.parent} --persist {unified_dir}"
+            )
 
     items = list(_load_jsonl(args.eval_path))
     print(f"Loaded {len(items)} eval questions.")
@@ -202,7 +228,7 @@ def main() -> None:
         is_answerable = item.get("is_answerable", True)
         tags = item.get("tags", [])
 
-        passages = _retrieve(q, args.top_k, args.mode, store, bm25_index, reranker)
+        passages = _retrieve(q, args.top_k, args.mode, store, bm25_index, reranker, unified)
         basenames = _basenames(passages)
 
         recall_1_hit = None
