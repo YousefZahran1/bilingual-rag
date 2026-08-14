@@ -1,0 +1,1179 @@
+{
+  "metrics": {
+    "n_questions": 46,
+    "mode": "dense",
+    "top_k": 4,
+    "retrieval_recall@1": {
+      "hit": 37,
+      "total": 42
+    },
+    "retrieval_recall@4": {
+      "hit": 41,
+      "total": 42
+    },
+    "keyword_coverage": {
+      "hit": 16,
+      "total": 67
+    },
+    "language_match": {
+      "hit": 45,
+      "total": 46
+    },
+    "abstain_correct": {
+      "hit": 0,
+      "total": 4
+    },
+    "generation_errors": 0
+  },
+  "per_question": [
+    {
+      "question": "How many operational chapters is CHI's Providers Classification Program organized into?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "chi_providers_classification_program.md"
+      ],
+      "retrieved_sources": [
+        "chi_providers_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_providers_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 4,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\chi_providers_classification_program.md, chunk_id: 0)\n# CHI Providers Classification Program > CHI's program for classifying and qualifying health service providers -- objectives, governance, and standards chapters (Beneficiary Rights, Provider Relationship, Population Health). > ...",
+      "generation_error": null
+    },
+    {
+      "question": "What years does CHI's strategic objectives period cover in the Providers Classification Program?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "chi_providers_classification_program.md"
+      ],
+      "retrieved_sources": [
+        "chi_payers_qualification_classification_program.md",
+        "chi_providers_classification_program.md",
+        "chi_providers_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": false,
+      "recall_k_hit": true,
+      "keyword_hits": 2,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\chi_payers_qualification_classification_program.md, chunk_id: 0)\n# CHI's Payers' Qualification and Classification Program > CHI's program for qualifying and classifying payers (health insurance companies) -- mission, strategic objectives (2020-2024), and standards chapters mirrori...",
+      "generation_error": null
+    },
+    {
+      "question": "What is Chapter II of the Providers Classification Program called?",
+      "tags": [
+        "definition"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "chi_providers_classification_program.md"
+      ],
+      "retrieved_sources": [
+        "chi_providers_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\chi_providers_classification_program.md, chunk_id: 0)\n# CHI Providers Classification Program > CHI's program for classifying and qualifying health service providers -- objectives, governance, and standards chapters (Beneficiary Rights, Provider Relationship, Population Health). > ...",
+      "generation_error": null
+    },
+    {
+      "question": "What is the objective of the Population Health Program initiative under CHI's Providers Classification Program?",
+      "tags": [
+        "definition"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "chi_providers_classification_program.md"
+      ],
+      "retrieved_sources": [
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_providers_classification_program.md"
+      ],
+      "recall_1_hit": false,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\chi_payers_qualification_classification_program.md, chunk_id: 53)\n. PI.1.3. The care managers work with the service providers to promote the health of identified high risk beneficiary. PI.1.4. The medical team work with the service providers to set short term and long term healthc...",
+      "generation_error": null
+    },
+    {
+      "question": "How many chapters does CHI's Payers' Qualification and Classification Program have?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "retrieved_sources": [
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 4,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\chi_payers_qualification_classification_program.md, chunk_id: 0)\n# CHI's Payers' Qualification and Classification Program > CHI's program for qualifying and classifying payers (health insurance companies) -- mission, strategic objectives (2020-2024), and standards chapters mirrori...",
+      "generation_error": null
+    },
+    {
+      "question": "What is Chapter II of the Payers' Qualification and Classification Program called?",
+      "tags": [
+        "definition"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "retrieved_sources": [
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\chi_payers_qualification_classification_program.md, chunk_id: 0)\n# CHI's Payers' Qualification and Classification Program > CHI's program for qualifying and classifying payers (health insurance companies) -- mission, strategic objectives (2020-2024), and standards chapters mirrori...",
+      "generation_error": null
+    },
+    {
+      "question": "What is Chapter V of the Payers' Qualification and Classification Program called?",
+      "tags": [
+        "definition"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "retrieved_sources": [
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 1,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\chi_payers_qualification_classification_program.md, chunk_id: 57)\n’ Qualification and Classification Program Chapter V Value Based Healthcare (VH) (6 Standards, 23 Sub-standard) ## Page 30 CHI’s Payers’ Qualification and Classification Program Chapter V Value Based Healthcare This...",
+      "generation_error": null
+    },
+    {
+      "question": "Do both CHI's Providers Classification Program and its Payers' Qualification and Classification Program include a Healthcare Information Management chapter, and what years do both programs' strategic objectives cover?",
+      "tags": [
+        "multi_doc",
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "chi_providers_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "retrieved_sources": [
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_providers_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 2,
+      "keyword_total": 3,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\chi_payers_qualification_classification_program.md, chunk_id: 0)\n# CHI's Payers' Qualification and Classification Program > CHI's program for qualifying and classifying payers (health insurance companies) -- mission, strategic objectives (2020-2024), and standards chapters mirrori...",
+      "generation_error": null
+    },
+    {
+      "question": "Up to what age are eye glasses excluded from coverage under the CHI Controls and Exclusions?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "controls_and_exclusions.md"
+      ],
+      "retrieved_sources": [
+        "controls_and_exclusions.md",
+        "definitions.md",
+        "controls_and_exclusions.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\controls_and_exclusions.md, chunk_id: 0)\n# Controls and Exclusions (CHI Health Insurance Policy) > Standard exclusions from Health Insurance Policy coverage under CHI regulation -- self-inflicted injury, fertility treatment, congenital conditions, and related carve-outs. > Source:...",
+      "generation_error": null
+    },
+    {
+      "question": "Are non-reconstructive cosmetic surgeries covered under the standard CHI policy exclusions?",
+      "tags": [
+        "definition"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "controls_and_exclusions.md"
+      ],
+      "retrieved_sources": [
+        "controls_and_exclusions.md",
+        "controls_and_exclusions.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\controls_and_exclusions.md, chunk_id: 0)\n# Controls and Exclusions (CHI Health Insurance Policy) > Standard exclusions from Health Insurance Policy coverage under CHI regulation -- self-inflicted injury, fertility treatment, congenital conditions, and related carve-outs. > Source:...",
+      "generation_error": null
+    },
+    {
+      "question": "Are costs related to dental implants, dentures, crowns, or bridges covered, according to the Controls and Exclusions?",
+      "tags": [
+        "definition"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "controls_and_exclusions.md"
+      ],
+      "retrieved_sources": [
+        "controls_and_exclusions.md",
+        "controls_and_exclusions.md",
+        "controls_and_exclusions.md",
+        "tawuniya_my_family_leaflet_en.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 2,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\controls_and_exclusions.md, chunk_id: 2)\nhealth programs, and treatment in social welfare institutions. 7. Any illness or injury arising directly from the profession of the Insured. 8. All costs related to dental implants, dentures, crowns, bridges or cosmetic procedures including...",
+      "generation_error": null
+    },
+    {
+      "question": "Is treatment arising directly from war or invasion covered under the CHI policy exclusions?",
+      "tags": [
+        "definition"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "controls_and_exclusions.md"
+      ],
+      "retrieved_sources": [
+        "controls_and_exclusions.md",
+        "tawuniya_my_family_leaflet_en.md",
+        "controls_and_exclusions.md",
+        "controls_and_exclusions.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\controls_and_exclusions.md, chunk_id: 0)\n# Controls and Exclusions (CHI Health Insurance Policy) > Standard exclusions from Health Insurance Policy coverage under CHI regulation -- self-inflicted injury, fertility treatment, congenital conditions, and related carve-outs. > Source:...",
+      "generation_error": null
+    },
+    {
+      "question": "How many key objectives does the CHI Health Insurance Policy target, according to Chapter One?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "definitions.md"
+      ],
+      "retrieved_sources": [
+        "definitions.md",
+        "chi_providers_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 1,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\definitions.md, chunk_id: 0)\n# Definitions (CHI Health Insurance Policy, Chapter One) > Chapter One of the CHI Health Insurance Policy: the seven key policy objectives and the defined terms used throughout CHI regulation. > Source: data/real2/pdfs/definitions.pdf (public document)...",
+      "generation_error": null
+    },
+    {
+      "question": "What chapter of the CHI Health Insurance Policy contains the Definitions?",
+      "tags": [
+        "definition"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "definitions.md"
+      ],
+      "retrieved_sources": [
+        "definitions.md",
+        "chi_providers_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 2,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\definitions.md, chunk_id: 0)\n# Definitions (CHI Health Insurance Policy, Chapter One) > Chapter One of the CHI Health Insurance Policy: the seven key policy objectives and the defined terms used throughout CHI regulation. > Source: data/real2/pdfs/definitions.pdf (public document)...",
+      "generation_error": null
+    },
+    {
+      "question": "Up to what age are sons covered as Dependents under a CHI-regulated health insurance policy?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "definitions.md"
+      ],
+      "retrieved_sources": [
+        "chi_payers_qualification_classification_program.md",
+        "definitions.md",
+        "controls_and_exclusions.md",
+        "tawuniya_my_family_leaflet_en.md"
+      ],
+      "recall_1_hit": false,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\chi_payers_qualification_classification_program.md, chunk_id: 40)\ns that suit the needs of the public. Some beneficiaries prefer to pay less premium and more co-pays, while other prefer higher premium and no co-pay (deductible). Some beneficiaries prefer VIP services, while others...",
+      "generation_error": null
+    },
+    {
+      "question": "Before how many weeks of pregnancy is a baby considered a Preterm Baby, per the CHI Definitions?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "definitions.md"
+      ],
+      "retrieved_sources": [
+        "definitions.md",
+        "chi_payers_qualification_classification_program.md",
+        "definitions.md",
+        "chi_providers_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\definitions.md, chunk_id: 14)\nor other substances. The individual experiences physical reactions caused by direct or indirect contact with those substances that cause conditions such as asthma, dyspepsia, friction, hay fever, eczema, and headache. 41. Congenital Defect: Functional...",
+      "generation_error": null
+    },
+    {
+      "question": "What is the CHI definition of Fraud among insurance parties?",
+      "tags": [
+        "definition"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "definitions.md"
+      ],
+      "retrieved_sources": [
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "definitions.md"
+      ],
+      "recall_1_hit": false,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\chi_payers_qualification_classification_program.md, chunk_id: 67)\nNotification to CHI related to group policy 3 months’ compliance with claims. 3) Immediate notification of new beneficiary registration process. References • Implementing Regulations of the Cooperative Health Insura...",
+      "generation_error": null
+    },
+    {
+      "question": "What is the difference between Abuse and Negligence under the CHI Definitions -- does Abuse require intent to defraud?",
+      "tags": [
+        "definition"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "definitions.md"
+      ],
+      "retrieved_sources": [
+        "definitions.md",
+        "controls_and_exclusions.md",
+        "chi_providers_classification_program.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\definitions.md, chunk_id: 21)\ndocuments the insurance company may request. 62. Fraud: when any of the Insurance Parties performs or refrains from performing an act aimed at gaining an unfair or unlawful advantage for the benefit of the fraudster or other parties, or an act that in...",
+      "generation_error": null
+    },
+    {
+      "question": "For urban areas, within how many kilometers or minutes must a service provider network be available to Beneficiaries, per CHI Network standards?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "network.md"
+      ],
+      "retrieved_sources": [
+        "network.md",
+        "network.md",
+        "network.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 2,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\network.md, chunk_id: 7)\nthe service provider network, and the Council shall later set the necessary condition: 1. For urban areas, a service provider network available to all Beneficiaries registered in the Policy within forty-eight (48) km or thirty (30) minutes from each person...",
+      "generation_error": null
+    },
+    {
+      "question": "For remote (non-urban) areas, within how many minutes or kilometers must other-specialty services be available to registered Beneficiaries?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "network.md"
+      ],
+      "retrieved_sources": [
+        "network.md",
+        "network.md",
+        "definitions.md",
+        "network.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\network.md, chunk_id: 7)\nthe service provider network, and the Council shall later set the necessary condition: 1. For urban areas, a service provider network available to all Beneficiaries registered in the Policy within forty-eight (48) km or thirty (30) minutes from each person...",
+      "generation_error": null
+    },
+    {
+      "question": "What are the three levels of health services a Preferred Providers Network (PPN) must ensure, per CHI Network standards?",
+      "tags": [
+        "definition"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "network.md"
+      ],
+      "retrieved_sources": [
+        "network.md",
+        "definitions.md",
+        "definitions.md",
+        "chi_providers_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 3,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\network.md, chunk_id: 0)\n# Network Standards (CHI Health Insurance Policy) > CHI standards for insurer provider networks -- Minimum Network, Preferred Providers Network (PPN), and network quality/coverage requirements. > Source: data/real2/pdfs/network.pdf (public document). ## Pa...",
+      "generation_error": null
+    },
+    {
+      "question": "What does PPN stand for in CHI's Network standards?",
+      "tags": [
+        "definition"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "network.md"
+      ],
+      "retrieved_sources": [
+        "network.md",
+        "definitions.md",
+        "definitions.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 1,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\network.md, chunk_id: 0)\n# Network Standards (CHI Health Insurance Policy) > CHI standards for insurer provider networks -- Minimum Network, Preferred Providers Network (PPN), and network quality/coverage requirements. > Source: data/real2/pdfs/network.pdf (public document). ## Pa...",
+      "generation_error": null
+    },
+    {
+      "question": "What does SBS stand for in CHI's coding guidelines, and which national classification system is it based on?",
+      "tags": [
+        "definition"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "sbs_code_mapping_guidelines.md"
+      ],
+      "retrieved_sources": [
+        "sbs_code_mapping_guidelines.md",
+        "sbs_code_mapping_guidelines.md",
+        "sbs_code_mapping_guidelines.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\sbs_code_mapping_guidelines.md, chunk_id: 54)\nto the appropriate Unlisted Drug code category and provide supporting information in the form of the CR#, or reference number, as text along with a copy of the approval document as a .PDF or image file in order that the payer will have...",
+      "generation_error": null
+    },
+    {
+      "question": "Which government body mandates the classifications the Saudi Billing System (SBS) is based on?",
+      "tags": [
+        "definition"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "sbs_code_mapping_guidelines.md"
+      ],
+      "retrieved_sources": [
+        "sbs_code_mapping_guidelines.md",
+        "definitions.md",
+        "chi_payers_qualification_classification_program.md",
+        "sbs_code_mapping_guidelines.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\sbs_code_mapping_guidelines.md, chunk_id: 7)\nte exchange of information, reimbursement claims, outcome reporting • Support VBHC initiatives • Improve transparency and sustainability CHI standards mandated under nphies Saudi Billing System (SBS): The SBS was developed by CHI to sta...",
+      "generation_error": null
+    },
+    {
+      "question": "In which month and year was CHI's Guidelines for Mapping Provider Service Lists to Standard Code Sets published?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "sbs_code_mapping_guidelines.md"
+      ],
+      "retrieved_sources": [
+        "sbs_code_mapping_guidelines.md",
+        "sbs_code_mapping_guidelines.md",
+        "sbs_code_mapping_guidelines.md",
+        "sbs_code_mapping_guidelines.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 1,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\sbs_code_mapping_guidelines.md, chunk_id: 0)\n# Guidelines for Mapping Provider Service Lists to Standard Code Sets (March 2023) > CHI guideline (March 2023) for mapping provider service lists to standard code sets (SBS). > Source: data/real2/pdfs/sbs_code_mapping_guidelines.pdf (p...",
+      "generation_error": null
+    },
+    {
+      "question": "What is the financial compensation for first-time qualification of a Health Insurance Claims Management Company, and over how many Hijri years?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "claims_management_qualification_regulation.md"
+      ],
+      "retrieved_sources": [
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\claims_management_qualification_regulation.md, chunk_id: 9)\nlicensed by SAMA to operate within the Kingdom of Saudi Arabia as limited liability/ joint stock insurance claims settlement companies. ## Page 5 2. Activities of medical claims management shall be separated from the acti...",
+      "generation_error": null
+    },
+    {
+      "question": "What is the minimum required insurance coverage for a Claims Management Company against default, negligence, and fault?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "claims_management_qualification_regulation.md"
+      ],
+      "retrieved_sources": [
+        "claims_management_qualification_regulation.md",
+        "tawuniya_my_family_leaflet_en.md",
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\claims_management_qualification_regulation.md, chunk_id: 25)\ncompanies under a contract with health insurance companies. Article (16): Health insurance claims management companies shall have the right to manage claims resulting from the following: A) Diagnosis and treatment at ser...",
+      "generation_error": null
+    },
+    {
+      "question": "How many days before expiry must qualification renewal applications for a Claims Management Company be submitted?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "claims_management_qualification_regulation.md"
+      ],
+      "retrieved_sources": [
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\claims_management_qualification_regulation.md, chunk_id: 41)\ncompanies and service providers. Article (42): Any fine shall be applied to the company by a decision from His Excellency/ the Chairman of the Council according to the following: 1- The fine of not submitting the qualifi...",
+      "generation_error": null
+    },
+    {
+      "question": "What is the qualification value for the first year of a Claims Management Company's 3-year qualification period?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "claims_management_qualification_regulation.md"
+      ],
+      "retrieved_sources": [
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\claims_management_qualification_regulation.md, chunk_id: 9)\nlicensed by SAMA to operate within the Kingdom of Saudi Arabia as limited liability/ joint stock insurance claims settlement companies. ## Page 5 2. Activities of medical claims management shall be separated from the acti...",
+      "generation_error": null
+    },
+    {
+      "question": "Within how many days of treatment must a Bupa member file a reimbursement claim form?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "bupa_member_guide_en.md"
+      ],
+      "retrieved_sources": [
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 1,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\bupa_member_guide_en.md, chunk_id: 13)\nand settling it with us based on the terms and conditions of your insurance policy. You need to file your claim form with Bupa within 90 days of your treatment. What does ‘reasonable and customary’ mean? Reasonable and Customary means that al...",
+      "generation_error": null
+    },
+    {
+      "question": "What is the typical member contribution level for out-patient services under a Bupa policy, as a percentage of the invoice amount?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "bupa_member_guide_en.md"
+      ],
+      "retrieved_sources": [
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\bupa_member_guide_en.md, chunk_id: 10)\n. To get an updated one, visit our website at member.bupa.com.sa. Can I add a specific hospital/clinic. We can't add a medical provider after activating the contract. According to the agreement with the policyholder, the provider network is e...",
+      "generation_error": null
+    },
+    {
+      "question": "What does MPN stand for in the Bupa member guide?",
+      "tags": [
+        "definition"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "bupa_member_guide_en.md"
+      ],
+      "retrieved_sources": [
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\bupa_member_guide_en.md, chunk_id: 0)\n# Bupa Arabia -- Your Membership Booklet > Bupa Arabia member/membership booklet: a private insurer's own member-facing policy guide, not a CHI regulatory document. > Source: data/real2/pdfs/bupa_member_guide_en.pdf (public document). ## Page ...",
+      "generation_error": null
+    },
+    {
+      "question": "Does a Bupa member need to pay cash for in-patient or day-case treatments?",
+      "tags": [
+        "definition"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "bupa_member_guide_en.md"
+      ],
+      "retrieved_sources": [
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\bupa_member_guide_en.md, chunk_id: 10)\n. To get an updated one, visit our website at member.bupa.com.sa. Can I add a specific hospital/clinic. We can't add a medical provider after activating the contract. According to the agreement with the policyholder, the provider network is e...",
+      "generation_error": null
+    },
+    {
+      "question": "What form/reference code identifies Tawuniya's \"MY Family\" Medical Insurance Plan policy wording?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "tawuniya_my_family_leaflet_en.md"
+      ],
+      "retrieved_sources": [
+        "tawuniya_my_family_leaflet_en.md",
+        "tawuniya_my_family_leaflet_en.md",
+        "tawuniya_my_family_leaflet_en.md",
+        "controls_and_exclusions.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\tawuniya_my_family_leaflet_en.md, chunk_id: 0)\n# Tawuniya -- Policy Wording for \"MY Family\" Medical Insurance Plans > Tawuniya's \"MY Family\" Medical Insurance Plan policy wording -- a private insurer's own policy document, not a CHI regulatory document. > Source: data/real2/pdfs/t...",
+      "generation_error": null
+    },
+    {
+      "question": "Under Tawuniya's \"MY Family\" policy wording, what is an Accident defined as?",
+      "tags": [
+        "definition"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "tawuniya_my_family_leaflet_en.md"
+      ],
+      "retrieved_sources": [
+        "tawuniya_my_family_leaflet_en.md",
+        "tawuniya_my_family_leaflet_en.md",
+        "tawuniya_my_family_leaflet_en.md",
+        "controls_and_exclusions.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\tawuniya_my_family_leaflet_en.md, chunk_id: 0)\n# Tawuniya -- Policy Wording for \"MY Family\" Medical Insurance Plans > Tawuniya's \"MY Family\" Medical Insurance Plan policy wording -- a private insurer's own policy document, not a CHI regulatory document. > Source: data/real2/pdfs/t...",
+      "generation_error": null
+    },
+    {
+      "question": "Under which article of the Implementing Regulations of the Law on Supervision of Cooperative Insurance Companies does Tawuniya distribute annual surplus to policyholders?",
+      "tags": [
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "tawuniya_my_family_leaflet_en.md"
+      ],
+      "retrieved_sources": [
+        "tawuniya_my_family_leaflet_en.md",
+        "tawuniya_my_family_leaflet_en.md",
+        "tawuniya_my_family_leaflet_en.md",
+        "claims_management_qualification_regulation.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 1,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\tawuniya_my_family_leaflet_en.md, chunk_id: 1)\nsurplus arising from the insurance operations. The amount, time and manner of and eligibility to such distribution are subject to the rules and regulations as stated in Article 70 of the Implementing Regulations of the Law on Supervis...",
+      "generation_error": null
+    },
+    {
+      "question": "What are the claim/reimbursement filing windows (in days) under Bupa's member guide and under CHI's Claims Management Companies regulation's renewal deadline?",
+      "tags": [
+        "multi_doc",
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "bupa_member_guide_en.md",
+        "claims_management_qualification_regulation.md"
+      ],
+      "retrieved_sources": [
+        "claims_management_qualification_regulation.md",
+        "bupa_member_guide_en.md",
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\claims_management_qualification_regulation.md, chunk_id: 17)\nto practice activities thereof during such period. 6. Companies shall be notified in writing by the General Secretariat of the rejection or Postponement of qualification renewal with clarification of the reasons thereof,...",
+      "generation_error": null
+    },
+    {
+      "question": "According to CHI's Arabic-language rollout document for the Unified Employer Document, which government body issued it -- the Council of Health Insurance?",
+      "tags": [
+        "cross_lingual",
+        "definition"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "unified_employer_document_ar.md"
+      ],
+      "retrieved_sources": [
+        "chi_payers_qualification_classification_program.md",
+        "sbs_code_mapping_guidelines.md",
+        "claims_management_qualification_regulation.md",
+        "chi_payers_qualification_classification_program.md"
+      ],
+      "recall_1_hit": false,
+      "recall_k_hit": false,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\chi_payers_qualification_classification_program.md, chunk_id: 46)\nthe providers using the CHI unified contract template. PR.1.2. The insurance company enhances the pre authorization process by appointing qualified physicians at the level of a specialist or higher. PR.1.3. The insu...",
+      "generation_error": null
+    },
+    {
+      "question": "On what date did Phase 1 of the Unified Employer Document rollout begin, and how many employees did it apply to (more than how many)?",
+      "tags": [
+        "cross_lingual",
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "unified_employer_document_ar.md"
+      ],
+      "retrieved_sources": [
+        "unified_employer_document_ar.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "unified_employer_document_ar.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\unified_employer_document_ar.md, chunk_id: 0)\n# الوثيقة الموحدة لصاحب العمل > CHI's rollout plan (Arabic) for the Unified Document for the Employer -- project definition and implementation phases. > Source: data/real2/pdfs/unified_employer_document_ar.pdf (public document). ## Pag...",
+      "generation_error": null
+    },
+    {
+      "question": "Into how many phases was the Unified Employer Document project rolled out, according to the Arabic CHI planning document, and how long did each phase last?",
+      "tags": [
+        "cross_lingual",
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "unified_employer_document_ar.md"
+      ],
+      "retrieved_sources": [
+        "unified_employer_document_ar.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_payers_qualification_classification_program.md",
+        "chi_providers_classification_program.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\unified_employer_document_ar.md, chunk_id: 0)\n# الوثيقة الموحدة لصاحب العمل > CHI's rollout plan (Arabic) for the Unified Document for the Employer -- project definition and implementation phases. > Source: data/real2/pdfs/unified_employer_document_ar.pdf (public document). ## Pag...",
+      "generation_error": null
+    },
+    {
+      "question": "متى بدأ تطبيق المرحلة الأولى من مشروع الوثيقة الموحدة لصاحب العمل؟",
+      "tags": [
+        "numeric"
+      ],
+      "split": "dev",
+      "is_answerable": true,
+      "expected_sources": [
+        "unified_employer_document_ar.md"
+      ],
+      "retrieved_sources": [
+        "unified_employer_document_ar.md",
+        "unified_employer_document_ar.md",
+        "unified_employer_document_ar.md",
+        "unified_employer_document_ar.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\unified_employer_document_ar.md, chunk_id: 5)\nآلية تطبيق مشروع الوثيقة املوحدة لصاحب العمل بدء تطبيق مشروع الوثيقة املوحدة لصاحب العمل بتاريخ2016/07/10م سيتم الزام صاحب العمل بإصدار وثيقة تأمين صحي واحدة فقط تحتوي على كافة العاملين لديه وأفراد أسرهم وذلك على اربعة مراحل لن يسمح لص...",
+      "generation_error": null
+    },
+    {
+      "question": "كم عدد مراحل تطبيق مشروع الوثيقة الموحدة لصاحب العمل حسب عدد العاملين لدى صاحب العمل؟",
+      "tags": [
+        "numeric"
+      ],
+      "split": "test",
+      "is_answerable": true,
+      "expected_sources": [
+        "unified_employer_document_ar.md"
+      ],
+      "retrieved_sources": [
+        "unified_employer_document_ar.md",
+        "unified_employer_document_ar.md",
+        "unified_employer_document_ar.md",
+        "unified_employer_document_ar.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real2\\unified_employer_document_ar.md, chunk_id: 5)\nآلية تطبيق مشروع الوثيقة املوحدة لصاحب العمل بدء تطبيق مشروع الوثيقة املوحدة لصاحب العمل بتاريخ2016/07/10م سيتم الزام صاحب العمل بإصدار وثيقة تأمين صحي واحدة فقط تحتوي على كافة العاملين لديه وأفراد أسرهم وذلك على اربعة مراحل لن يسمح لص...",
+      "generation_error": null
+    },
+    {
+      "question": "What is the maximum lifetime coverage limit under Tawuniya's individual (non-family) medical insurance plan?",
+      "tags": [
+        "unanswerable"
+      ],
+      "split": "dev",
+      "is_answerable": false,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "tawuniya_my_family_leaflet_en.md",
+        "tawuniya_my_family_leaflet_en.md",
+        "controls_and_exclusions.md",
+        "tawuniya_my_family_leaflet_en.md"
+      ],
+      "recall_1_hit": null,
+      "recall_k_hit": null,
+      "keyword_hits": 0,
+      "keyword_total": 0,
+      "language_match": true,
+      "abstain_hit": false,
+      "answer": "[1] (source: real2\\tawuniya_my_family_leaflet_en.md, chunk_id: 0)\n# Tawuniya -- Policy Wording for \"MY Family\" Medical Insurance Plans > Tawuniya's \"MY Family\" Medical Insurance Plan policy wording -- a private insurer's own policy document, not a CHI regulatory document. > Source: data/real2/pdfs/t...",
+      "generation_error": null
+    },
+    {
+      "question": "Does MedGulf's Group Health Policy cover maternity care?",
+      "tags": [
+        "unanswerable"
+      ],
+      "split": "test",
+      "is_answerable": false,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "controls_and_exclusions.md",
+        "tawuniya_my_family_leaflet_en.md",
+        "controls_and_exclusions.md",
+        "tawuniya_my_family_leaflet_en.md"
+      ],
+      "recall_1_hit": null,
+      "recall_k_hit": null,
+      "keyword_hits": 0,
+      "keyword_total": 0,
+      "language_match": true,
+      "abstain_hit": false,
+      "answer": "[1] (source: real2\\controls_and_exclusions.md, chunk_id: 1)\ns resulting from the intentional abuse of some medications, stimulants, sedatives, substance abuse, etc., excluding the costs of treating emergency cases (life-threatening injuries) as described by the Private Health Institutions Law and Re...",
+      "generation_error": null
+    },
+    {
+      "question": "What is the CHI-mandated minimum salary for a claims management company's medical director?",
+      "tags": [
+        "unanswerable"
+      ],
+      "split": "dev",
+      "is_answerable": false,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "chi_payers_qualification_classification_program.md",
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md",
+        "claims_management_qualification_regulation.md"
+      ],
+      "recall_1_hit": null,
+      "recall_k_hit": null,
+      "keyword_hits": 0,
+      "keyword_total": 0,
+      "language_match": true,
+      "abstain_hit": false,
+      "answer": "[1] (source: real2\\chi_payers_qualification_classification_program.md, chunk_id: 18)\nclaims’ review by clinical coders. GL.5.6. The organization ensures the coders’ no conflict of interest. GL.6.1. The medical director is a registered consultant physician with SCFHS. GL.6.2. The medical director has...",
+      "generation_error": null
+    },
+    {
+      "question": "هل تغطي وثيقة بوبا تكاليف علاج التجميل غير الضروري طبياً؟",
+      "tags": [
+        "unanswerable"
+      ],
+      "split": "test",
+      "is_answerable": false,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "controls_and_exclusions.md",
+        "bupa_member_guide_en.md",
+        "bupa_member_guide_en.md",
+        "controls_and_exclusions.md"
+      ],
+      "recall_1_hit": null,
+      "recall_k_hit": null,
+      "keyword_hits": 0,
+      "keyword_total": 0,
+      "language_match": false,
+      "abstain_hit": false,
+      "answer": "[1] (source: real2\\controls_and_exclusions.md, chunk_id: 1)\ns resulting from the intentional abuse of some medications, stimulants, sedatives, substance abuse, etc., excluding the costs of treating emergency cases (life-threatening injuries) as described by the Private Health Institutions Law and Re...",
+      "generation_error": null
+    }
+  ]
+}

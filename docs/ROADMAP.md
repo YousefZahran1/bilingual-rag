@@ -131,6 +131,21 @@
   numbers and the numeric/non-numeric/multi-doc subset breakdown in
   `docs/EVAL.md` still reflect the old vacuous metric and haven't been
   re-run — flagged inline in both docs, not silently left as claims.
+- [x] Second real corpus (`data/real2`, 10 docs, CHI payer/provider
+  classification standards + Bupa/Tawuniya private-insurer policy docs) to
+  test generalization past `data/real`'s document types. 46 questions
+  (dev/test split), all six retrieval modes run and reported test-split-only
+  in `docs/EVAL.md`'s "v0.6" section. One collected PDF (MedGulf) excluded
+  for confirmed text-layer corruption rather than extracted as garbage --
+  see `data/real2/SOURCES.md`. `scripts/extract_pdfs.py` and
+  `eval/validate_eval_set.py` generalized to a `--corpus` flag to support
+  this and any future corpus. Genuinely different-vertical generalization
+  (non-healthcare regulation, e.g. an external benchmark like MIRACL) is
+  still open, not attempted here.
+- [ ] Retro-tag `data/sample` and `data/real`'s existing eval questions with
+  a `split: dev|test` field (only `data/real2` has this so far) -- needed
+  before Phase 6's router re-tuning can honestly separate "tuned on" from
+  "reported on" the way this corpus's numbers already do.
 
 ## Stretch
 - [ ] Fine-tuned reranker on Saudi healthcare corpus

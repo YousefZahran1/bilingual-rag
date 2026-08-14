@@ -1,4 +1,4 @@
-"""Validates data/sample/eval_questions.jsonl against data/sample/*.md.
+"""Validates a corpus's eval_questions.jsonl against its own *.md files.
 
 Pure string matching -- no models, no retrieval. This exists because the
 same person (an LLM, authoring both the documents and the questions in one
@@ -9,15 +9,18 @@ expected_source(s)). It proves internal consistency, not that the questions
 are hard or realistic -- see docs/EVAL.md for the manual spot-check caveat.
 
 Usage:
-    python -m eval.validate_eval_set
+    python -m eval.validate_eval_set                  # data/sample
+    python -m eval.validate_eval_set --corpus real2   # data/real2
 """
 from __future__ import annotations
 
+import argparse
 import json
 from collections.abc import Iterable
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "sample"
+DATA_ROOT = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = DATA_ROOT / "sample"
 EVAL_PATH = DATA_DIR / "eval_questions.jsonl"
 
 
@@ -85,7 +88,13 @@ def validate(eval_path: Path = EVAL_PATH, data_dir: Path = DATA_DIR) -> tuple[li
 
 
 def main() -> None:
-    errors, warnings = validate()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--corpus", default="sample", help="data/<corpus> directory name")
+    args = ap.parse_args()
+    data_dir = DATA_ROOT / args.corpus
+    eval_path = data_dir / "eval_questions.jsonl"
+
+    errors, warnings = validate(eval_path, data_dir)
     for w in warnings:
         print(f"WARNING: {w}")
     for e in errors:

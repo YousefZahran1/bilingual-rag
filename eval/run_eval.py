@@ -227,6 +227,7 @@ def main() -> None:
         expected_keywords = item.get("expected_keywords", [])
         is_answerable = item.get("is_answerable", True)
         tags = item.get("tags", [])
+        split = item.get("split")
 
         passages = _retrieve(q, args.top_k, args.mode, store, bm25_index, reranker, unified)
         basenames = _basenames(passages)
@@ -257,6 +258,7 @@ def main() -> None:
                 {
                     "question": q,
                     "tags": tags,
+                    "split": split,
                     "is_answerable": is_answerable,
                     "expected_sources": expected,
                     "retrieved_sources": basenames,
@@ -295,6 +297,7 @@ def main() -> None:
             {
                 "question": q,
                 "tags": tags,
+                "split": split,
                 "is_answerable": is_answerable,
                 "expected_sources": expected,
                 "retrieved_sources": basenames,
