@@ -19,6 +19,9 @@ load_dotenv()
 
 
 SUPPORTED_SUFFIXES = {".md", ".txt"}
+# Corpus-provenance / documentation files that live beside the corpus but are
+# not themselves searchable documents. Skipped so they never enter the index.
+IGNORED_NAMES = {"SOURCES.md", "README.md"}
 
 
 def ingest_path(path: Path, store: VectorStore, bm25_index: Optional[BM25Index] = None) -> int:
@@ -27,7 +30,11 @@ def ingest_path(path: Path, store: VectorStore, bm25_index: Optional[BM25Index] 
         files = [path]
     else:
         files = [
-            p for p in path.rglob("*") if p.is_file() and p.suffix.lower() in SUPPORTED_SUFFIXES
+            p
+            for p in path.rglob("*")
+            if p.is_file()
+            and p.suffix.lower() in SUPPORTED_SUFFIXES
+            and p.name not in IGNORED_NAMES
         ]
     for f in files:
         text = f.read_text(encoding="utf-8", errors="ignore")

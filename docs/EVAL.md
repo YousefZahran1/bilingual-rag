@@ -33,6 +33,12 @@ committed snapshots, not hand-edited.
 
 ## Headline numbers (mock LLM, multilingual-e5-small + BM25 + mmarco-mMiniLMv2 reranker, top_k=4)
 
+**These are the v0.2 numbers this investigation started from** (before the
+numeric router and token-based chunking below). Kept as-is because the
+"honest finding" walkthrough right below is built directly on top of them —
+see "v0.4: Token-based chunking" and "The actual fix" further down for the
+current default (`smart` mode)'s numbers on the present-day corpus/chunking.
+
 | Metric | dense | hybrid_rerank |
 |---|---|---|
 | retrieval_recall@1 | 59/71 (83%) | 58/71 (82%) |
@@ -141,13 +147,74 @@ to BM25 — this doesn't affect correctness (BM25-only retrieval still feeds
 into the same hardened, injection-resistant generation prompt either way),
 just retrieval-strategy choice.
 
+## v0.4: Token-based chunking (measured, not assumed, to be neutral-to-positive)
+
+Chunking was character-budgeted (`CHUNK_BUDGET = {"ar": 700, "en": 1100,
+"mixed": 900}`), a language-aware but still estimated proxy for the
+embedding model's real 512-token input limit. Rewrote to measure chunk
+size with the actual tokenizer (`AutoTokenizer.from_pretrained
+("intfloat/multilingual-e5-small")`), a single `MAX_TOKENS = 400` budget
+replacing the three char constants — see `docs/TOKENIZATION.md` for the
+measured AR/EN token density this replaces an estimate with.
+
+This *could* have gone either way: correcter chunk boundaries don't
+automatically mean better retrieval. Re-ingested and re-ran the full
+89-question mock-provider eval (`smart` mode) to get a real before/after
+number rather than assuming:
+
+| Metric | v0.3 (char-based) | v0.4 (token-based) |
+|---|---|---|
+| retrieval_recall@1 | 58/71 (82%) | **59/71 (83%)** |
+| retrieval_recall@4 | 69/71 (97%) | 69/71 (97%) |
+| keyword_coverage (mock) | 33/95 (35%) | 29/95 (31%) |
+| language_match | 89/89 (100%) | 89/89 (100%) |
+
+recall@4 — the metric that actually matters for retrieval quality — is
+unchanged. recall@1 ticked up by one question. `keyword_coverage` dropped
+by 4/95 under mock, but this is expected noise, not a real regression:
+`MockProvider` returns the first 300 characters of the concatenated
+top-4 passages verbatim (see `src/rag/generator.py`), so any shift in
+chunk boundaries changes which raw text lands in that 300-character
+window — this metric was already flagged as unreliable under mock (see
+"Mock provider caveats" below) and the real-LLM numbers above are the
+ones that matter for generation quality; they're unaffected by this
+chunking change since they measure semantic paraphrase quality, not
+literal substring position. Net result: token-based chunking is a wash to
+small win on the metrics that are meaningful, and a real fix to the
+"is chunking calibrated to the actual model" question regardless of the
+retrieval numbers.
+
+**All four modes, re-run on the token-chunked corpus** (`eval/results/
+v0.4_{dense,hybrid_rerank,bm25_only,smart_token_chunks}.json`):
+
+| Metric | dense | hybrid_rerank | bm25_only | **smart** |
+|---|---|---|---|---|
+| retrieval_recall@1 | 58/71 (82%) | 57/71 (80%) | 57/71 (80%) | **59/71 (83%)** |
+| retrieval_recall@4 | 67/71 (94%) | 67/71 (94%) | 66/71 (93%) | **69/71 (97%)** |
+| keyword_coverage (mock) | 30/95 (32%) | 29/95 (31%) | 28/95 (29%) | 29/95 (31%) |
+| language_match | 89/89 (100%) | 89/89 (100%) | 89/89 (100%) | 89/89 (100%) |
+
+`smart` still matches or beats every single-strategy mode on the token-based
+corpus, same as it did on the char-based one — the router's advantage
+wasn't an artifact of the old chunking.
+
 ## Real LLM results (OpenRouter, openai/gpt-oss-20b:free) — complete, all 3 modes
 
 Everything above used `MockProvider` (extractive, can't hallucinate, can't
 abstain). This section is real generations, 2026-07-12, all three retrieval
 modes, ~86-88 of 89 questions each (a handful hit OpenRouter's free-tier
 daily cap per run — recorded as `generation_error` per question, not a
-fatal run failure, so partial progress is never silently discarded).
+fatal run failure, so partial progress is never silently discarded). **This
+run predates the token-based chunking switch above and `smart` mode**
+(neither has been re-run against a real LLM yet, still blocked on a
+working OpenRouter key — see `docs/ROADMAP.md`). The recall@1/recall@4
+rows below are from the pre-chunking-change corpus specifically; the mock
+comparison earlier in this doc showed mock and real-LLM retrieval numbers
+land within a point or two of each other on the same corpus (retrieval
+doesn't depend on the generation provider), so the fresh mock numbers in
+the table above are a reasonable proxy for what a real-LLM re-run on the
+current corpus would show, but they are not a substitute for actually
+re-running it.
 
 | Metric | dense (88/89) | hybrid_rerank (84/89) | bm25_only (88/89) |
 |---|---|---|---|

@@ -3,6 +3,7 @@ uvicorn[standard]>=0.29
 streamlit>=1.33
 chromadb>=0.4.24
 sentence-transformers>=2.7
+transformers>=4.40
 rank-bm25>=0.2.2
 openai>=1.30
 anthropic>=0.25

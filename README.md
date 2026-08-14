@@ -6,32 +6,72 @@ A retrieval-augmented question-answering system tuned for Saudi healthcare and i
 
 > Built to demonstrate a production-flavoured RAG pipeline end-to-end: multilingual embeddings, vector search, FastAPI inference, Streamlit UI, and a real evaluation harness — not a toy notebook.
 
+## Architecture
+
+```mermaid
+flowchart TD
+    Docs["Documents (AR / EN / mixed)"] --> Chunk["Token-aware chunker<br/>400 tokens/chunk, measured with the<br/>e5 tokenizer -- see docs/TOKENIZATION.md"]
+    Chunk --> Dense["① Native multilingual embeddings<br/>intfloat/multilingual-e5-small (Chroma)"]
+    Chunk --> BM25idx["BM25 index<br/>Arabic-aware light normalization (lang.py)"]
+
+    Query["User query (AR or EN)"] --> Router{"Numeric query?<br/>query_router.py"}
+    Router -- "yes: counts, %, caps, SAR figures" --> BM25Search["BM25 search only<br/>(reranker specifically hurts these -- docs/EVAL.md)"]
+    Router -- "no" --> Hybrid["② Hybrid search: dense top-20 + BM25 top-20<br/>→ Reciprocal Rank Fusion (k=60)<br/>→ ③ Cross-lingual reranker<br/>mmarco-mMiniLMv2-L12-H384-v1, 14 languages incl. Arabic"]
+    Dense -.-> Hybrid
+    BM25idx -.-> Hybrid
+    BM25idx -.-> BM25Search
+
+    BM25Search --> Passages["Top-4 passages + citations"]
+    Hybrid --> Passages
+    Passages --> Gen["④ Generator (pluggable: OpenAI / Anthropic / OpenRouter / mock)<br/>answers in the query's language -- 100% language_match, measured"]
+    Gen --> API["FastAPI /chat"] --> UI["Streamlit UI (RTL-aware)"]
+```
+
+Four things this pipeline is built to get right for bilingual (Arabic/English) retrieval, all real and measured, not just architectural claims:
+
+1. **Native multilingual embeddings** — `intfloat/multilingual-e5-small`, not English embeddings with documents translated on the fly.
+2. **Hybrid search** — BM25 (with genuine Arabic-aware light normalization: diacritics/tatweel/alef-variant unification, *not* full morphological stemming — see `docs/TOKENIZATION.md`) fused with dense retrieval via Reciprocal Rank Fusion (k=60), so exact-term and semantic matching both contribute.
+3. **Cross-lingual reranking** — `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` covers 14 languages including Arabic; a numeric-query router (`query_router.py`) bypasses it specifically for numeric questions, where it was empirically found to hurt (`docs/EVAL.md`).
+4. **Language-consistent synthesis** — the generator answers in the language the question was asked in; measured at **100% language_match (89/89)** across every mock and real-LLM eval run this project has recorded.
+
+`VectorStore.retrieve()` (dense-only) and `retrieve_pipeline()` (unconditional hybrid+rerank) both stay reachable via `retrieval_mode: dense | hybrid_rerank | smart` on `/chat` — `smart` (the router above) is the default because it matches or beats the other two on every measured subset, not because the alternatives are dead code; they're the explicit "before" comparison arms.
+
 ## Run locally
 
 See **Quick start** below — works in ~2 minutes with no API key (mock provider included). Docker also available via `deploy/docker-compose.yml`. HF Spaces deployment instructions in [`docs/DEMO.md`](docs/DEMO.md).
 
 ## Eval (this commit, 34 docs / 89 questions — full breakdown in `docs/EVAL.md`)
 
-```
-mock LLM:             dense          hybrid_rerank   bm25_only
-retrieval_recall@1:   59/71 (83%)    58/71 (82%)     58/71 (82%)
-retrieval_recall@4:   65/71 (92%)    67/71 (94%)     67/71 (94%)
-keyword_coverage:     35/95 (37%)   38/95 (40%)      —
-language_match:       89/89 (100%)  89/89 (100%)     —
+**Mock LLM** (retrieval-only, zero API cost):
 
-real LLM (OpenRouter, openai/gpt-oss-20b:free):
-keyword_coverage:     69%            70%             67%
-language_match:       100%           100%            100%
-abstain_correct:      100%           100%            100%
-```
+| Metric | **smart** (default) | dense | hybrid_rerank | bm25_only |
+|---|---|---|---|---|
+| retrieval_recall@1 | **59/71 (83%)** | 58/71 (82%) | 57/71 (80%) | 57/71 (80%) |
+| retrieval_recall@4 | **69/71 (97%)** | 67/71 (94%) | 67/71 (94%) | 66/71 (93%) |
+| keyword_coverage | 29/95 (31%) | 30/95 (32%) | 29/95 (31%) | 28/95 (29%) |
+| language_match | 89/89 (100%) | 89/89 (100%) | 89/89 (100%) | 89/89 (100%) |
 
-Hybrid+rerank isn't a uniform win — it's a clear improvement on non-numeric
-questions (recall@4 hits 100%) and a small regression on numeric-exact-match
-questions. Isolating BM25 alone (`--mode bm25_only`) shows the regression is
-specifically caused by the cross-encoder reranker, not by BM25 or the RRF
-fusion step — BM25 alone actually has the *best* numeric recall@4 of the
-three modes. `retrieval_mode` is exposed as a real API/UI toggle so all modes
-are usable, not just the default.
+**Real LLM** (OpenRouter, `openai/gpt-oss-20b:free`) — predates the
+token-based chunking switch and hasn't been re-run for `smart` mode yet
+(blocked on a working OpenRouter key, see `docs/ROADMAP.md`); recall/
+language numbers are provider-independent, so the mock table above is a
+close proxy for what a fresh run would show:
+
+| Metric | dense | hybrid_rerank | bm25_only |
+|---|---|---|---|
+| keyword_coverage | 69% | 70% | 67% |
+| language_match | 100% | 100% | 100% |
+| abstain_correct | 100% | 100% | 100% |
+
+`smart` (a numeric query router — routes counts/percentages/caps to BM25
+alone, everything else through hybrid+rerank) is the default `retrieval_mode`
+because it matches or beats every single-strategy mode on every measured
+subset. It exists because hybrid+rerank isn't a uniform win: it's a clear
+improvement on non-numeric questions (recall@4 hits 100%) but a small
+regression on numeric-exact-match questions — isolating BM25 alone
+(`--mode bm25_only`) showed the regression is specifically caused by the
+cross-encoder reranker, not by BM25 or the RRF fusion step. All four modes
+stay exposed as a real API/UI toggle, not just the default.
 
 **Real LLM findings:** keyword_coverage nearly doubles vs mock's extractive
 echo, as expected. The interesting one: the first real-LLM run found the
@@ -48,42 +88,6 @@ including a self-caught bug in the abstain-detection scorer itself, in
 
 Saudi healthcare and insurance documents arrive in mixed Arabic + English. Off-the-shelf RAG built for English corpora struggles with Arabic morphology, RTL text, and the script-mixing typical of Gulf documents. This repo handles the messy bits with deliberate, documented choices.
 
-## Architecture
-
-```
-docs (AR/EN/mixed)
-        │  language-aware chunker
-        ▼
-   ┌──────────────────┐        ┌──────────────┐
-   │ Multilingual-e5  │        │  BM25 index  │  rank_bm25, Arabic-aware
-   │  (Chroma store)  │        │ (JSONL sidecar) tokenization (lang.py)
-   └────┬─────────────┘        └──────┬───────┘
-        │ dense top-20                │ sparse top-20
-        └──────────────┬──────────────┘
-                        ▼
-              ┌───────────────────┐
-              │  RRF fusion (k=60) │  fusion.py
-              └─────────┬──────────┘
-                        ▼ top-20 fused
-              ┌───────────────────────┐
-              │  Cross-encoder rerank │  mmarco-mMiniLMv2-L12-H384-v1
-              └─────────┬──────────────┘
-                        ▼ top-4
-              ┌──────────┐
-              │ Generator│  pluggable: OpenAI / Anthropic / OpenRouter / mock
-              └────┬─────┘
-                   │ answer + citations
-                   ▼
-   ┌──────────┐    ┌──────────┐
-   │ FastAPI  │ ─▶ │ Streamlit│  retrieval_mode: dense | hybrid_rerank
-   │  /chat   │    │   UI     │
-   └──────────┘    └──────────┘
-```
-
-`VectorStore.retrieve()` (dense-only) is still directly reachable via
-`retrieval_mode: "dense"` — it's the explicit "before" comparison arm, not
-dead code.
-
 ## Tech stack and why
 
 | Choice | Rejected | Why |
@@ -92,7 +96,7 @@ dead code.
 | Chroma (local persistent) | Pinecone | Self-contained demo; no API key gate for reviewers |
 | `rank-bm25` (BM25Okapi) | Elasticsearch/OpenSearch | One light pure-Python dependency vs standing up a search service for a demo repo |
 | Reciprocal Rank Fusion, fixed k=60 | Tuned/learned fusion weight | Literature-standard constant; tuning a hyperparameter against this project's own 89-question eval set and citing the result would be a credibility risk |
-| `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | `BAAI/bge-reranker-v2-m3` | ~80MB vs ~2.2GB; keeps the same small-model philosophy as picking `e5-small` over larger e5 variants |
+| `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | `BAAI/bge-reranker-v2-m3`, Cohere Rerank-3/3.5 | mmarco covers 14 languages incl. Arabic at ~80MB vs bge's ~2.2GB (same small-model philosophy as picking `e5-small` over larger e5 variants); Cohere has best-in-class Arabic reranking but requires a paid API key, which breaks this project's zero-cost-to-run design — every provider choice here was made free/local-first |
 | JSONL sidecar for the BM25 index | Binary-serializing `BM25Okapi` | Human-diffable, safe to commit, survives library/Python version upgrades; rebuild from tokenized text is fast and pure Python |
 | OpenRouter (`openai` SDK, custom `base_url`) | Only OpenAI/Anthropic direct | Free-tier access to real models for eval at no cost; OpenRouter's chat completions API is a drop-in OpenAI-compatible endpoint, so no new HTTP client dependency was needed |
 | FastAPI | Flask, Django | Async + types + auto OpenAPI |
@@ -140,7 +144,7 @@ and `eval/run_eval.py`.
 python -m eval.run_eval data/sample/eval_questions.jsonl
 ```
 
-Reproduces the table in `docs/EVAL.md`: retrieval recall@k, answer faithfulness, language-match accuracy.
+Reproduces the table in `docs/EVAL.md`: retrieval recall@k, answer faithfulness, language-match accuracy. See `docs/TOKENIZATION.md` for the measured (not estimated) Arabic-vs-English token density behind the chunker's token budget.
 
 ## Deployment
 
@@ -154,7 +158,7 @@ For free-tier hosting: Hugging Face Spaces (Streamlit template) or Fly.io.
 
 ## Roadmap
 
-See `docs/ROADMAP.md`. Hybrid retrieval (BM25 + dense) and cross-encoder re-ranking shipped in v0.2. Next: Ragas integration, deploy live demo.
+See `docs/ROADMAP.md`. Hybrid retrieval (BM25 + dense), cross-encoder re-ranking, the numeric query router (`smart` mode), and token-based chunking have shipped. Next: Ragas integration, deploy live demo.
 
 ## License
 

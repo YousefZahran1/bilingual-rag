@@ -38,6 +38,19 @@
 - [x] Found and fixed a bug in the eval harness's own abstain-detection
   scorer along the way (curly-quote/phrasing mismatches caused genuine
   refusals to score as failures) — see docs/EVAL.md's "quieter finding"
+- [x] Token-based chunking: replaced the language-aware character-budget
+  chunker with one measured against the real embedding-model tokenizer
+  (`MAX_TOKENS = 400`, ~20% headroom under the 512-token limit). recall@4
+  unchanged (69/71), recall@1 up by 1 question — see docs/EVAL.md and
+  docs/TOKENIZATION.md for the measured AR/EN token density this
+  replaces an estimate with.
+- [x] Architecture diagram moved to a GitHub-native Mermaid flowchart at the
+  top of README.md (was ASCII, mid-document), explicitly labeling the 4
+  cross-lingual signals (native multilingual embeddings, hybrid search,
+  cross-lingual reranking, language-consistent synthesis) with their real
+  measured numbers instead of just architectural claims. Added Cohere
+  Rerank-3/3.5 to the reranker decision table as a considered-and-rejected
+  alternative (paid API, conflicts with this project's free-cost design).
 - [ ] Ragas integration: faithfulness, answer relevancy, context precision
   (now unblocked — needs a real LLM provider, which now exists)
 - [ ] Streaming responses

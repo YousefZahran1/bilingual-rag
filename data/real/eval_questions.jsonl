@@ -1,0 +1,15 @@
+{"question": "Within how many minutes must the Insurance Company approve a treatment request under the Unified Contract?", "expected_keywords": ["60", "minutes"], "expected_source": "unified_contract.md", "tags": ["numeric"]}
+{"question": "If the service provider receives no response to an approval request within 60 minutes, what happens?", "expected_keywords": ["approved"], "expected_source": "unified_contract.md", "tags": ["scope"]}
+{"question": "Within how many days of claims maturity must claims be settled under the Unified Contract?", "expected_keywords": ["30", "claims"], "expected_source": "unified_contract.md", "tags": ["numeric"]}
+{"question": "How does the Unified Contract define 'Health'?", "expected_keywords": ["physical", "mental"], "expected_source": "unified_contract.md", "tags": ["definition"]}
+{"question": "خلال كم دقيقة تلتزم شركة التأمين بالرد على طلب الموافقة في العقد الموحد؟", "expected_keywords": ["60"], "expected_source": "unified_contract.md", "tags": ["numeric"]}
+{"question": "على مدار كم ساعة وكم يوم في الأسبوع يجب توفر الخدمة حسب العقد الموحد؟", "expected_keywords": ["24", "7"], "expected_source": "unified_contract.md", "tags": ["numeric"]}
+{"question": "What kind of formulary is the CHI Insurance Drug Formulary described as?", "expected_keywords": ["evidence-based", "open"], "expected_source": "drug_formulary.md", "tags": ["definition"]}
+{"question": "What is the maximum co-payment for generic medications for the total prescription?", "expected_keywords": ["30 SAR", "generic"], "expected_source": "drug_formulary.md", "tags": ["numeric"]}
+{"question": "What is the co-payment range for brand medications that have available registered generics?", "expected_keywords": ["50%", "brand"], "expected_source": "drug_formulary.md", "tags": ["numeric"]}
+{"question": "How many new benefits and amended benefits does the tiers benefit package introduce?", "expected_keywords": ["18", "new benefits"], "expected_source": "ebp_5_tiers.md", "tags": ["numeric"]}
+{"question": "What are the names of the insurance policy tiers in the benefit package?", "expected_keywords": ["Gold"], "expected_source": "ebp_5_tiers.md", "tags": ["scope"]}
+{"question": "Up to what age are sons covered as dependents under the Essential Benefit Package?", "expected_keywords": ["twenty-five", "Dependent"], "expected_source": "essential_benefit_package.md", "tags": ["numeric"]}
+{"question": "For how long is a newborn covered immediately after delivery under the Essential Benefit Package?", "expected_keywords": ["30 days", "delivery"], "expected_source": "essential_benefit_package.md", "tags": ["numeric"]}
+{"question": "Are dental implants, dentures, crowns and cosmetic dental work covered under the Essential Benefit Package?", "expected_keywords": ["dental implants"], "expected_source": "essential_benefit_package.md", "tags": ["scope"]}
+{"question": "What co-insurance applies to medicines with no generic alternative under the Essential Benefit Package?", "expected_keywords": ["20%", "co-insurance"], "expected_source": "essential_benefit_package.md", "tags": ["numeric"]}

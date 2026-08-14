@@ -1,0 +1,24 @@
+{
+  "ar": {
+    "docs": 14,
+    "total_words": 2067,
+    "total_tokens": 3674,
+    "tokens_per_word": 1.777,
+    "median_tokens_per_word": 1.825
+  },
+  "en": {
+    "docs": 15,
+    "total_words": 2214,
+    "total_tokens": 3340,
+    "tokens_per_word": 1.509,
+    "median_tokens_per_word": 1.491
+  },
+  "mixed": {
+    "docs": 5,
+    "total_words": 1088,
+    "total_tokens": 1807,
+    "tokens_per_word": 1.661,
+    "median_tokens_per_word": 1.657
+  },
+  "ar_vs_en_density_ratio": 1.18
+}

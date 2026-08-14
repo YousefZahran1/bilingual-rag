@@ -21,3 +21,8 @@ index_data/
 *.egg-info/
 dist/
 build/
+
+# temp files from cowork session
+*.bak
+data/sample/_*.jsonl
+data/sample/_*
