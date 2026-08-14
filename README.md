@@ -45,8 +45,6 @@ Detailed per-module flowcharts, hand-checked line-by-line against the code they 
 | ![lifecycle](docs/diagrams/04-request-lifecycle.jpg) | `src/api/app.py`, `src/ui/app.py` | Streamlit → httpx → FastAPI (Pydantic validation) → retrieve + generate → typed response → RTL-aware rendering. Drawn before the `retrieval_mode` toggle was added. |
 | ![eval](docs/diagrams/05-eval-harness.jpg) | `eval/run_eval.py` | The three baseline metrics (recall@k, keyword_coverage, language_match) on the original 8-question set. The harness has since grown (89 questions, abstain metrics, `--mode`). |
 
-Prompts used to generate these diagrams are in [`docs/diagrams/PROMPTS.md`](docs/diagrams/PROMPTS.md).
-
 Four things this pipeline is built to get right for bilingual (Arabic/English) retrieval, all real and measured, not just architectural claims:
 
 1. **Native multilingual embeddings** — `intfloat/multilingual-e5-small`, not English embeddings with documents translated on the fly.
