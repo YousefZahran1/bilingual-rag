@@ -29,3 +29,8 @@ build/
 data/sample/_*.jsonl
 data/sample/_*
 .gstack/
+
+# Excluded from the real2 corpus: confirmed text-layer corruption (garbled
+# glyphs with both pymupdf and pypdf), not used by scripts/extract_pdfs.py --
+# see data/real2/SOURCES.md's "Excluded" section. Kept on local disk only.
+data/real2/pdfs/GROUP HEALTH POLICY.pdf

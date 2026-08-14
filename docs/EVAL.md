@@ -53,6 +53,60 @@ historical record. Its specific numbers (89 questions, `language_match`
 under the old buggy metric) are stale; its retrieval mechanics
 (RRF, reranker, BM25) still describe the real system.
 
+## v0.6: a second corpus (`data/real2`) — does this generalize past `data/real`?
+
+`data/real` and `data/sample` are both CCHI's insurer-facing contract/benefit
+documents. `data/real2` (10 documents, ~213 pages, see `data/real2/SOURCES.md`)
+is a different *angle* on the same domain — the regulator's own
+classification/qualification standards for the payers and providers it
+oversees, plus two real private insurers' own policy wordings (Bupa Arabia,
+Tawuniya) — content neither `data/sample` nor `data/real` has at all. One
+document was collected but excluded: a MedGulf policy PDF whose text layer is
+genuinely corrupted (confirmed with two different extraction engines); see
+`data/real2/SOURCES.md`'s "Excluded" section rather than silently shipping
+garbled text.
+
+46 questions (24 dev / 22 test), tagged `numeric | definition | multi_doc |
+cross_lingual | unanswerable`. Per this repo's dev/test discipline, **the
+table below reports test-split numbers only** — dev-split numbers exist in
+`eval/results/v0.6_real2_*.json` for anyone tuning against this corpus, but
+aren't the headline claim.
+
+Mock provider, all six modes, `data/real2` test split (20 recall-eligible
+questions, 22 generated, 26 keyword checks):
+
+| Metric | dense | **hybrid_rerank** | bm25_only | smart | unified | unified_two_stage |
+|---|---|---|---|---|---|---|
+| retrieval_recall@1 | 15/20 (75%) | **19/20 (95%)** | 17/20 (85%) | **19/20 (95%)** | 18/20 (90%) | 18/20 (90%) |
+| retrieval_recall@4 | 19/20 (95%) | **20/20 (100%)** | **20/20 (100%)** | **20/20 (100%)** | **20/20 (100%)** | 19/20 (95%) |
+| keyword_coverage | 8/26 (31%) | **15/26 (58%)** | 7/26 (27%) | 11/26 (42%) | 5/26 (19%) | 5/26 (19%) |
+| language_match | 21/22 (95%) | 20/22 (91%) | **22/22 (100%)** | 21/22 (95%) | 20/22 (91%) | 20/22 (91%) |
+
+**Reading this honestly:** recall is strong across every mode (75-100%) —
+this corpus's 10 documents are topically distinct from each other (network
+standards vs. definitions vs. claims-company regulation rarely overlap in
+vocabulary), which makes retrieval easier here than on `data/sample`'s more
+homogeneous insurance-plan documents. `hybrid_rerank` leads on both
+recall@1 and keyword_coverage on this corpus, `smart` ties it on recall@1.
+`unified`/`unified_two_stage` match the best recall@4 but have the weakest
+keyword_coverage — consistent with the same mock-provider-truncation
+mechanism documented in "Mock provider caveats" below (parent-expanded
+passages are larger, so the model's answer window doesn't always land on the
+specific keyword). This is a fair, if narrow, "does it generalize" test: the
+pipeline was tuned on `data/real`'s document *type*, and reasonably
+transfers to a different set of documents from the same broad domain — it
+has not been tested against a genuinely different subject-matter vertical
+(e.g. non-healthcare regulation), which stays an open item.
+
+Reproduce:
+
+```bash
+python -m src.rag.ingest data/real2 --reset
+python -m src.rag.pipeline build data/real2 --persist ./unified_index_real2
+python -m eval.run_eval data/real2/eval_questions.jsonl --top-k 4 --mode smart --out eval/results/v0.6_real2_smart.json
+# ...and dense / hybrid_rerank / bm25_only / unified / unified_two_stage
+```
+
 ## How to reproduce
 
 ```bash
