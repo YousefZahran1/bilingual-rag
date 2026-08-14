@@ -181,4 +181,8 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md). Hybrid retrieval (BM25 + dense), cross
 
 ## License
 
-MIT — see `LICENSE`.
+**PolyForm Noncommercial 1.0.0** — see [`LICENSE`](LICENSE).
+
+Free for noncommercial use: personal projects, research, study, education, and
+evaluation are all permitted. **Commercial or company use requires a separate
+license** — contact the author (Youssef Ibrahim) for permission.
