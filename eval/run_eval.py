@@ -256,7 +256,7 @@ def main() -> None:
                 kw_hits += 1
 
         q_lang = detect_language(q)
-        lang_hit = result.language == q_lang
+        lang_hit = detect_language(result.answer) == q_lang
         n_lang_match += int(lang_hit)
 
         abstain_hit = None
