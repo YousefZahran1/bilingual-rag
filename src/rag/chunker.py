@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import List, Iterable
 
 from .lang import detect_language
 
@@ -91,7 +91,7 @@ def _tail_tokens(text: str, overlap: int) -> str:
     return _get_tokenizer().decode(ids[-overlap:]).strip()
 
 
-def chunk_document(text: str, source: str) -> List[Chunk]:
+def chunk_document(text: str, source: str) -> list[Chunk]:
     """Chunk a document using the configured strategy (CHUNK_STRATEGY)."""
     if CHUNK_STRATEGY == "structure":
         return _chunk_structured(text, source)
@@ -114,7 +114,7 @@ def _is_boundary(line: str) -> bool:
     )
 
 
-def _split_oversized(text: str) -> List[str]:
+def _split_oversized(text: str) -> list[str]:
     """A single clause longer than the budget is token-windowed; otherwise
     returned as-is."""
     return [text] if _token_len(text) <= MAX_TOKENS else list(
@@ -122,7 +122,7 @@ def _split_oversized(text: str) -> List[str]:
     )
 
 
-def _segments(text: str) -> List[str]:
+def _segments(text: str) -> list[str]:
     """Group lines into structural segments — each starts at a boundary line
     (heading / numbered clause / lettered sub-point)."""
     segs: list[str] = []
@@ -138,7 +138,7 @@ def _segments(text: str) -> List[str]:
     return [s for s in segs if s.strip()]
 
 
-def _chunk_structured(text: str, source: str) -> List[Chunk]:
+def _chunk_structured(text: str, source: str) -> list[Chunk]:
     """Split on clause/section markers, then pack consecutive clauses up to the
     token budget (never splitting a clause across chunks unless the clause alone
     exceeds the budget). Chunks stay aligned to real clause boundaries, so a
@@ -178,7 +178,7 @@ def _chunk_structured(text: str, source: str) -> List[Chunk]:
     return chunks
 
 
-def _chunk_token(text: str, source: str) -> List[Chunk]:
+def _chunk_token(text: str, source: str) -> list[Chunk]:
     if not text or not text.strip():
         return []
     language = detect_language(text)

@@ -1,7 +1,7 @@
 """FastAPI service exposing /chat with citations."""
 from __future__ import annotations
 
-from typing import List, Literal
+from typing import Literal
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -48,7 +48,7 @@ class Citation(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
-    citations: List[Citation]
+    citations: list[Citation]
     language: str
 
 

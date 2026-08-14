@@ -23,13 +23,12 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 from .chunker import SENTENCE_SPLIT, _segments, _split_oversized, _token_len
 from .lang import detect_language
 
 
-def _atoms(text: str, strategy: str) -> List[str]:
+def _atoms(text: str, strategy: str) -> list[str]:
     """Smallest indivisible units to pack into parents/children.
 
     - "structure": clause/section segments (numbered legal text).
@@ -38,7 +37,7 @@ def _atoms(text: str, strategy: str) -> List[str]:
     """
     if strategy == "structure":
         return _segments(text)
-    atoms: List[str] = []
+    atoms: list[str] = []
     for para in text.split("\n\n"):
         for sent in SENTENCE_SPLIT.split(para.strip()):
             s = sent.strip()
@@ -68,11 +67,11 @@ class _Child:
     language: str
 
 
-def _pack_groups(segments: List[str], budget: int) -> List[List[str]]:
+def _pack_groups(segments: list[str], budget: int) -> list[list[str]]:
     """Greedily pack an ordered list of structural segments into contiguous
     groups, each <= budget tokens (an oversized single segment stands alone)."""
-    groups: List[List[str]] = []
-    cur: List[str] = []
+    groups: list[list[str]] = []
+    cur: list[str] = []
     tok = 0
     for seg in segments:
         st = _token_len(seg)
@@ -94,13 +93,13 @@ def _pack_groups(segments: List[str], budget: int) -> List[List[str]]:
 
 def build_parents_children(
     text: str, source: str, strategy: str = "structure"
-) -> Tuple[Dict[str, str], List[_Child]]:
+) -> tuple[dict[str, str], list[_Child]]:
     """Return ({parent_id: parent_text}, [children]) for one document."""
     segs = _atoms(text, strategy)
-    parents: Dict[str, str] = {}
-    children: List[_Child] = []
-    pid = cid = 0
-    for parent_group in _pack_groups(segs, PARENT_MAX):
+    parents: dict[str, str] = {}
+    children: list[_Child] = []
+    cid = 0
+    for pid, parent_group in enumerate(_pack_groups(segs, PARENT_MAX)):
         parent_id = f"{source}::P{pid}"
         parents[parent_id] = "\n".join(parent_group).strip()
         # pack children strictly within this parent's segment run
@@ -111,7 +110,6 @@ def build_parents_children(
                     _Child(piece, source, cid, parent_id, detect_language(piece))
                 )
                 cid += 1
-        pid += 1
     return parents, children
 
 
@@ -124,7 +122,7 @@ class ParentChildIndex:
         self.parent_path = Path(persist_dir) / "parents.json"
         self._col = None
         self._embedder = None
-        self._parents: Dict[str, str] = {}
+        self._parents: dict[str, str] = {}
 
     def _collection(self):
         if self._col is None:
@@ -143,9 +141,9 @@ class ParentChildIndex:
             )
         return self._col
 
-    def build_from_dir(self, data_dir: str) -> Tuple[int, int]:
+    def build_from_dir(self, data_dir: str) -> tuple[int, int]:
         col = self._collection()
-        parents: Dict[str, str] = {}
+        parents: dict[str, str] = {}
         docs, ids, metas = [], [], []
         for f in sorted(Path(data_dir).glob("*.md")):
             if f.name in {"SOURCES.md", "README.md"}:
@@ -166,19 +164,19 @@ class ParentChildIndex:
         self.parent_path.write_text(json.dumps(parents, ensure_ascii=False), encoding="utf-8")
         return len(parents), len(docs)
 
-    def _load_parents(self) -> Dict[str, str]:
+    def _load_parents(self) -> dict[str, str]:
         if not self._parents:
             self._parents = json.loads(self.parent_path.read_text(encoding="utf-8"))
         return self._parents
 
-    def retrieve_parents(self, query: str, child_k: int = 8, parent_k: int = 4) -> List[ParentPassage]:
+    def retrieve_parents(self, query: str, child_k: int = 8, parent_k: int = 4) -> list[ParentPassage]:
         """Retrieve top child chunks, then return the de-duplicated parents they
         belong to (order preserved by best child score)."""
         col = self._collection()
         parents = self._load_parents()
         prefixed = query if query.startswith(("query:", "passage:")) else f"query: {query}"
         res = col.query(query_texts=[prefixed], n_results=child_k)
-        seen: Dict[str, ParentPassage] = {}
+        seen: dict[str, ParentPassage] = {}
         for meta, dist in zip(res["metadatas"][0], res["distances"][0]):
             pid = meta.get("parent_id", "")
             score = 1.0 - float(dist)

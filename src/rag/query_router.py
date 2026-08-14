@@ -65,6 +65,4 @@ def is_numeric_query(query: str) -> bool:
         return True
     if _AR_PHRASE_PATTERN.search(query):
         return True
-    if _DIGIT_UNIT_PATTERN.search(query):
-        return True
-    return False
+    return bool(_DIGIT_UNIT_PATTERN.search(query))

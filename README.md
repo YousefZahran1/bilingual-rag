@@ -2,9 +2,15 @@
 
 [![CI](https://github.com/YousefZahran1/bilingual-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/YousefZahran1/bilingual-rag/actions/workflows/ci.yml)
 
-A retrieval-augmented question-answering system tuned for Saudi healthcare and insurance documents. Bilingual: ingest documents in Arabic, English, or mixed; ask in either language; get an answer in the language you asked, with citations to the source passages.
+A bilingual Arabic/English retrieval-augmented generation (RAG) system built for Saudi healthcare and insurance documents that arrive in Arabic, English, or mixed script. It uses `multilingual-e5` embeddings for dense retrieval, a hybrid BM25 + dense pipeline with cross-encoder reranking, and answers in whichever language you ask in, with citations to the source passages. Built to demonstrate a production-flavoured RAG pipeline end-to-end — not a toy notebook.
 
-> Built to demonstrate a production-flavoured RAG pipeline end-to-end: multilingual embeddings, vector search, FastAPI inference, Streamlit UI, and a real evaluation harness — not a toy notebook.
+## What it does
+
+- Ingests Arabic, English, or mixed-script documents and chunks them with a token-aware chunker, calibrated to the real `multilingual-e5` tokenizer (see `docs/TOKENIZATION.md`).
+- Retrieves with a hybrid pipeline: dense search over a `multilingual-e5` + ChromaDB index, fused via Reciprocal Rank Fusion with a parallel BM25 index that uses Arabic-aware tokenization (diacritic/tatweel stripping, alef normalization).
+- Reranks fused candidates with a cross-lingual cross-encoder, bypassed for numeric questions by a query router that routes them to BM25 alone instead.
+- Detects the query language and answers in that language, with right-to-left (RTL) text handling in the Streamlit UI so Arabic answers render correctly.
+- Serves through a FastAPI backend with a Streamlit chat UI, and ships a real evaluation harness with retrieval recall@k, keyword coverage, language-match, and abstain-correctness metrics.
 
 ## Architecture
 
@@ -118,27 +124,9 @@ uvicorn src.api.app:app --reload &
 streamlit run src/ui/app.py
 ```
 
-Open `http://localhost:8501` and ask in Arabic or English.
+Open `http://localhost:8501` and ask in Arabic or English. Works with no API key (mock provider included). Docker: `docker compose -f deploy/docker-compose.yml up`. HF Spaces deployment instructions in [`docs/DEMO.md`](docs/DEMO.md).
 
-## Configuration
-
-| Env var | Default | Purpose |
-|---|---|---|
-| `EMBEDDING_MODEL` | `intfloat/multilingual-e5-small` | Embeddings model |
-| `VECTOR_DIR` | `./chroma_db` | Where Chroma persists |
-| `INDEX_DIR` | `./index_data` | Where the BM25 sidecar persists |
-| `LLM_PROVIDER` | `mock` | `mock` / `openai` / `anthropic` / `openrouter` |
-| `OPENAI_API_KEY` | — | Required if `LLM_PROVIDER=openai` |
-| `ANTHROPIC_API_KEY` | — | Required if `LLM_PROVIDER=anthropic` |
-| `OPENROUTER_API_KEY` | — | Required if `LLM_PROVIDER=openrouter` |
-| `OPENROUTER_MODEL` | `openai/gpt-oss-20b:free` | Any OpenRouter model id; pick a non-expiring free one — check openrouter.ai/models for "going away" flags |
-| `TOP_K` | `4` | Passages per query |
-
-Copy `.env.example` to `.env` and fill in. `.env` is loaded automatically
-(via `python-dotenv`) by every entrypoint — the API, the UI, `ingest.py`,
-and `eval/run_eval.py`.
-
-## Evaluation
+Run the evaluation harness:
 
 ```bash
 python -m eval.run_eval data/sample/eval_questions.jsonl
@@ -146,19 +134,50 @@ python -m eval.run_eval data/sample/eval_questions.jsonl
 
 Reproduces the table in `docs/EVAL.md`: retrieval recall@k, answer faithfulness, language-match accuracy. See `docs/TOKENIZATION.md` for the measured (not estimated) Arabic-vs-English token density behind the chunker's token budget.
 
-## Deployment
+Copy `.env.example` to `.env` to configure the embedding model, vector/index dirs, LLM provider, and `TOP_K`.
 
-`deploy/Dockerfile` + `deploy/docker-compose.yml`. One-command bring-up:
+## Results
 
-```bash
-docker compose -f deploy/docker-compose.yml up
+Eval on this commit: 34 documents, 89 questions (full breakdown in [`docs/EVAL.md`](docs/EVAL.md)).
+
+**Retrieval recall@4, mock LLM, by mode:**
+
+```
+                  dense    hybrid_rerank   bm25_only   smart (default)
+numeric (49 q)    94%      92%             96%         96%
+non-numeric (22)  86%      100%            91%         100%
+multi-doc (15)    80%      73%             80%         87%
+overall (71)      92%      94%             94%         97%
 ```
 
-For free-tier hosting: Hugging Face Spaces (Streamlit template) or Fly.io.
+`smart` matches or beats every individual mode on every subset — including
+multi-document questions, which no single retrieval strategy won outright.
+It routes numeric queries to BM25 alone and everything else through
+hybrid+rerank, because isolating BM25 (`--mode bm25_only`) showed the
+cross-encoder reranker specifically hurts numeric-exact-match retrieval,
+not the fusion step or BM25 itself.
+
+**Real LLM (OpenRouter, `openai/gpt-oss-20b:free`), across dense / hybrid_rerank / bm25_only:**
+
+```
+keyword_coverage:  69% / 70% / 67%   (mock: 37% / 40% / — )
+language_match:    100% / 100% / 100%
+abstain_correct:   100% / 100% / 100%   (51/51 unanswerable questions correctly refused)
+```
+
+keyword_coverage nearly doubles vs mock's extractive echo, as expected. The
+first real-LLM run found the model correctly refused plain out-of-scope
+questions but complied with 6 of 9 prompt-injection-style ones ("ignore
+your instructions", "pretend this section doesn't exist") — empirical
+confirmation of a risk the project's Defense Brief only flagged
+theoretically before. System prompt hardened in response; **re-tested and
+now 100% correct refusal across all three retrieval modes.** Full
+breakdown, including a self-caught bug in the abstain-detection scorer
+itself, in `docs/EVAL.md`.
 
 ## Roadmap
 
-See `docs/ROADMAP.md`. Hybrid retrieval (BM25 + dense), cross-encoder re-ranking, the numeric query router (`smart` mode), and token-based chunking have shipped. Next: Ragas integration, deploy live demo.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md). Hybrid retrieval (BM25 + dense), cross-encoder re-ranking, the numeric query router (`smart` mode), real-LLM eval, and token-based chunking have shipped. Next: Ragas integration, streaming responses, deploy live demo.
 
 ## License
 

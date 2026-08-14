@@ -17,7 +17,6 @@ actual sentence_transformers.CrossEncoder(...) is constructed on first use
 from __future__ import annotations
 
 import os
-from typing import List
 
 from .store import RetrievedPassage
 
@@ -43,8 +42,8 @@ class CrossEncoderReranker:
         self._get_model()
 
     def rerank(
-        self, query: str, passages: List[RetrievedPassage], top_k: int = 4
-    ) -> List[RetrievedPassage]:
+        self, query: str, passages: list[RetrievedPassage], top_k: int = 4
+    ) -> list[RetrievedPassage]:
         if not passages:
             return []
         model = self._get_model()

@@ -2,8 +2,6 @@
 plus the hybrid retrieve -> rerank pipeline built on top of it."""
 from __future__ import annotations
 
-from typing import List, Tuple
-
 from .bm25_index import BM25Index
 from .query_router import is_numeric_query
 from .reranker import CrossEncoderReranker
@@ -11,9 +9,9 @@ from .store import RetrievedPassage, VectorStore
 
 
 def reciprocal_rank_fusion(
-    rankings: List[List[str]],
+    rankings: list[list[str]],
     k: int = 60,
-) -> List[Tuple[str, float]]:
+) -> list[tuple[str, float]]:
     """Fuse multiple rankings of doc ids into one score-sorted ranking.
 
     Each inner list in `rankings` is a list of doc ids in rank order (best
@@ -44,7 +42,7 @@ def retrieve_pipeline(
     reranker: CrossEncoderReranker,
     top_k: int = 4,
     fusion_top_n: int = 20,
-) -> List[RetrievedPassage]:
+) -> list[RetrievedPassage]:
     """Dense top-N + BM25 top-N -> RRF fuse -> top-N fused candidates ->
     cross-encoder rerank -> top_k. VectorStore.retrieve() itself stays
     dense-only and is used elsewhere as the explicit "before" comparison
@@ -78,7 +76,7 @@ def smart_retrieve(
     reranker: CrossEncoderReranker,
     top_k: int = 4,
     fusion_top_n: int = 20,
-) -> List[RetrievedPassage]:
+) -> list[RetrievedPassage]:
     """Routes numeric-answer-expecting queries to BM25 alone (empirically
     the best measured method for them, see docs/EVAL.md's "Numeric query
     router" section) and everything else through the full hybrid+rerank

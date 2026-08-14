@@ -25,7 +25,6 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from .bm25_index import BM25Index
 from .chunker import Chunk
@@ -47,8 +46,8 @@ _TYPE_RULES = [
     ("policy", ("benefit package", "insurance policy", "essential benefit",
                 "tiers benefit", "basic health insurance", "policy")),
 ]
-_H1_RE = re.compile(r"^#\s+(.+)$", re.M)
-_EFFECTIVE_RE = re.compile(r"effective[^\d]*(\d{1,2}\s+[A-Za-z]+\s+\d{4})", re.I)
+_H1_RE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
+_EFFECTIVE_RE = re.compile(r"effective[^\d]*(\d{1,2}\s+[A-Za-z]+\s+\d{4})", re.IGNORECASE)
 _DATE_RE = re.compile(r"(\d{1,2}\s+[A-Za-z]+\s+\d{4}|[A-Za-z]+\s+\d{4}|20\d{2})")
 _CLAUSE_RE = re.compile(r"(?m)^\s*(\d{1,3}(?:\.\d{1,3}){0,3})[.)]?\s+\S")
 _LETTER_RE = re.compile(r"(?m)^\s*([A-Za-z])[.)]\s+\S")
@@ -116,14 +115,14 @@ def infer_doc_meta(path: Path) -> DocMeta:
     )
 
 
-def _build_where(filters: Optional[Dict[str, str]]):
+def _build_where(filters: dict[str, str] | None):
     if not filters:
         return None
     conds = [{k: {"$eq": v}} for k, v in filters.items()]
     return conds[0] if len(conds) == 1 else {"$and": conds}
 
 
-def _match(meta: Dict, filters: Optional[Dict[str, str]]) -> bool:
+def _match(meta: dict, filters: dict[str, str] | None) -> bool:
     return not filters or all(str(meta.get(k)) == str(v) for k, v in filters.items())
 
 
@@ -138,9 +137,9 @@ class UnifiedIndex:
         self._pcol = None
         self._embedder = None
         self._reranker = None
-        self._parents: Dict[str, dict] = {}
-        self._child_meta: Dict[str, dict] = {}
-        self._bm25: Optional[BM25Index] = None
+        self._parents: dict[str, dict] = {}
+        self._child_meta: dict[str, dict] = {}
+        self._bm25: BM25Index | None = None
 
     def _collection(self):
         if self._col is None:
@@ -171,11 +170,11 @@ class UnifiedIndex:
 
     def build(self, data_dir: str) -> dict:
         col = self._collection()
-        parents: Dict[str, dict] = {}
-        child_meta: Dict[str, dict] = {}
-        bm25_chunks: List[Chunk] = []
+        parents: dict[str, dict] = {}
+        child_meta: dict[str, dict] = {}
+        bm25_chunks: list[Chunk] = []
         ids, docs, metas = [], [], []
-        routing: Dict[str, str] = {}
+        routing: dict[str, str] = {}
         for f in sorted(Path(data_dir).glob("*.md")):
             if f.name in {"SOURCES.md", "README.md"}:
                 continue
@@ -242,7 +241,7 @@ class UnifiedIndex:
         prefixed = query if query.startswith(("query:", "passage:")) else f"query: {query}"
         dense = col.query(query_texts=[prefixed], n_results=top_n, where=where)
         dense_ids = [f"{m['source']}::{m['chunk_id']}" for m in dense["metadatas"][0]]
-        sparse_ids: List[str] = []
+        sparse_ids: list[str] = []
         for p in self._bm25.search(query, top_k=top_n * 3):
             did = f"{p.source}::{p.chunk_id}"
             if _match(self._child_meta.get(did, {}), filters):
@@ -251,8 +250,8 @@ class UnifiedIndex:
                 break
         return reciprocal_rank_fusion([dense_ids, sparse_ids])
 
-    def _expand_to_parents(self, fused, parent_k) -> List[RetrievedPassage]:
-        parents: List[RetrievedPassage] = []
+    def _expand_to_parents(self, fused, parent_k) -> list[RetrievedPassage]:
+        parents: list[RetrievedPassage] = []
         seen: set = set()
         for did, score in fused:
             meta = self._child_meta.get(did)
@@ -277,8 +276,8 @@ class UnifiedIndex:
         return parents
 
     def retrieve(
-        self, query: str, filters: Optional[Dict[str, str]] = None, parent_k: int = PARENT_K
-    ) -> List[RetrievedPassage]:
+        self, query: str, filters: dict[str, str] | None = None, parent_k: int = PARENT_K
+    ) -> list[RetrievedPassage]:
         """Single-stage: hybrid dense+BM25+RRF over children (optionally
         metadata-filtered), expanded to de-duplicated parent sections."""
         fused = self._hybrid_children(query, _build_where(filters), filters, FUSION_TOP_N)
@@ -294,12 +293,12 @@ class UnifiedIndex:
     def retrieve_two_stage(
         self,
         query: str,
-        filters: Optional[Dict[str, str]] = None,
+        filters: dict[str, str] | None = None,
         first_k: int = 8,
         rerank_n: int = 24,
         parent_k: int = PARENT_K,
         use_reranker: bool = True,
-    ) -> List[RetrievedPassage]:
+    ) -> list[RetrievedPassage]:
         """Hierarchical retrieval: (1) route via the parent-summary index to a
         candidate set of documents, (2) hybrid child search restricted to them,
         (3) cross-encoder rerank the top children, (4) expand to parents."""
@@ -310,7 +309,7 @@ class UnifiedIndex:
         pres = pcol.query(
             query_texts=[prefixed], n_results=first_k, where=_build_where(filters)
         )
-        cand_docs: List[str] = []
+        cand_docs: list[str] = []
         for m in (pres.get("metadatas") or [[]])[0]:
             d = m.get("doc_id")
             if d and d not in cand_docs:

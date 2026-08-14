@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -24,7 +23,7 @@ SUPPORTED_SUFFIXES = {".md", ".txt"}
 IGNORED_NAMES = {"SOURCES.md", "README.md"}
 
 
-def ingest_path(path: Path, store: VectorStore, bm25_index: Optional[BM25Index] = None) -> int:
+def ingest_path(path: Path, store: VectorStore, bm25_index: BM25Index | None = None) -> int:
     total = 0
     if path.is_file():
         files = [path]
