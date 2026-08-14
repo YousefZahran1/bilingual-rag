@@ -1,0 +1,390 @@
+{
+  "metrics": {
+    "n_questions": 15,
+    "mode": "hybrid_rerank",
+    "top_k": 4,
+    "retrieval_recall@1": {
+      "hit": 13,
+      "total": 15
+    },
+    "retrieval_recall@4": {
+      "hit": 15,
+      "total": 15
+    },
+    "keyword_coverage": {
+      "hit": 6,
+      "total": 26
+    },
+    "language_match": {
+      "hit": 11,
+      "total": 15
+    },
+    "abstain_correct": {
+      "hit": 0,
+      "total": 0
+    },
+    "generation_errors": 0
+  },
+  "per_question": [
+    {
+      "question": "Within how many minutes must the Insurance Company approve a treatment request under the Unified Contract?",
+      "tags": [
+        "numeric"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "unified_contract.md"
+      ],
+      "retrieved_sources": [
+        "essential_benefit_package.md",
+        "unified_contract.md",
+        "unified_contract.md",
+        "unified_contract.md"
+      ],
+      "recall_1_hit": false,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\essential_benefit_package.md, chunk_id: 55)\nthat all basic data and information that support the approval request are submitted. E. The Insurance Company shall respond to the request sub mitted by the service provider for the approval of providing treatment to the Beneficiaries wit...",
+      "generation_error": null
+    },
+    {
+      "question": "If the service provider receives no response to an approval request within 60 minutes, what happens?",
+      "tags": [
+        "scope"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "unified_contract.md"
+      ],
+      "retrieved_sources": [
+        "unified_contract.md",
+        "unified_contract.md",
+        "unified_contract.md",
+        "unified_contract.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": false,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\unified_contract.md, chunk_id: 37)\nبوت قيامه بالاحتيال، على أن تقوم شركة التأمين بتوفير بديل عنه بنفس المستوى بالتنسيق مع حامل الوثيقة. ## Page 11 3.3 In the event the Insurance Company changes the insurance category of service provider, that service provider shall continue receivi...",
+      "generation_error": null
+    },
+    {
+      "question": "Within how many days of claims maturity must claims be settled under the Unified Contract?",
+      "tags": [
+        "numeric"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "unified_contract.md"
+      ],
+      "retrieved_sources": [
+        "unified_contract.md",
+        "unified_contract.md",
+        "unified_contract.md",
+        "unified_contract.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 1,
+      "keyword_total": 2,
+      "language_match": false,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\unified_contract.md, chunk_id: 67)\nطالبات بشكل مباشر أو من خلال شركة إدارة دورة الإيرادات إلى شركة التأمين مباشرة أو إلى شركة إدارة المطالبات في حال وجود تعاقد وذلك خلال مدة لا تزيد عن ( 30) يوم من تاريخ الحصول على الخدمة حسب الملحق (4.) 5.2 If the service provider delays in submit...",
+      "generation_error": null
+    },
+    {
+      "question": "How does the Unified Contract define 'Health'?",
+      "tags": [
+        "definition"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "unified_contract.md"
+      ],
+      "retrieved_sources": [
+        "unified_contract.md",
+        "unified_contract.md",
+        "unified_contract.md",
+        "essential_benefit_package.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\unified_contract.md, chunk_id: 0)\n# The Unified Contract between Insurance Company and Health Service Provider > Bilingual (Arabic/English) standard contract governing the relationship between insurers and private-sector health service providers in Saudi Arabia. > Source: data/real...",
+      "generation_error": null
+    },
+    {
+      "question": "خلال كم دقيقة تلتزم شركة التأمين بالرد على طلب الموافقة في العقد الموحد؟",
+      "tags": [
+        "numeric"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "unified_contract.md"
+      ],
+      "retrieved_sources": [
+        "unified_contract.md",
+        "unified_contract.md",
+        "unified_contract.md",
+        "unified_contract.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": false,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\unified_contract.md, chunk_id: 38)\nas of forwarding, the request shall be considered approved in accordance with the Policy. No amendment or cancellation of approved services may be made retroactively, without official notice by the Insurance Company to the service provider, provid...",
+      "generation_error": null
+    },
+    {
+      "question": "على مدار كم ساعة وكم يوم في الأسبوع يجب توفر الخدمة حسب العقد الموحد؟",
+      "tags": [
+        "numeric"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "unified_contract.md"
+      ],
+      "retrieved_sources": [
+        "unified_contract.md",
+        "unified_contract.md",
+        "unified_contract.md",
+        "unified_contract.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 2,
+      "keyword_total": 2,
+      "language_match": false,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\unified_contract.md, chunk_id: 39)\nخطار رسمي من قبل شركة التأمين إلى مقدم الخدمة على مستوى المطالبة ويشترط لصحة الإجراء ألا تكون الخدمة قد قدمت فعلاً. 3.5 The Insurance Company shall provide a team that Approvals Department shall operate 24/7. 3.5 تلتزم شركة التأمين بأن توفر فريق ل...",
+      "generation_error": null
+    },
+    {
+      "question": "What kind of formulary is the CHI Insurance Drug Formulary described as?",
+      "tags": [
+        "definition"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "drug_formulary.md"
+      ],
+      "retrieved_sources": [
+        "drug_formulary.md",
+        "drug_formulary.md",
+        "essential_benefit_package.md",
+        "essential_benefit_package.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 1,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\drug_formulary.md, chunk_id: 0)\n# Insurance Drug Formulary (IDF) > Overview of the CCHI evidence-based insurance drug formulary, co-payment rules, and the prescription filling process. > Source: data/real/pdfs/drug_formulary.pdf (public CCHI document). ## Page 1 Insurance Drug Form...",
+      "generation_error": null
+    },
+    {
+      "question": "What is the maximum co-payment for generic medications for the total prescription?",
+      "tags": [
+        "numeric"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "drug_formulary.md"
+      ],
+      "retrieved_sources": [
+        "drug_formulary.md",
+        "drug_formulary.md",
+        "essential_benefit_package.md",
+        "ebp_5_tiers.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 1,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\drug_formulary.md, chunk_id: 2)\nbeneficiaries. Standardized Implementation Indication/ICD-10 code-linked formulary ensuring ease of implementation for Payers & Providers Use of Generics Introduction of therapeutically equivalent and more affordable generic medications as against br...",
+      "generation_error": null
+    },
+    {
+      "question": "What is the co-payment range for brand medications that have available registered generics?",
+      "tags": [
+        "numeric"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "drug_formulary.md"
+      ],
+      "retrieved_sources": [
+        "drug_formulary.md",
+        "drug_formulary.md",
+        "essential_benefit_package.md",
+        "ebp_5_tiers.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\drug_formulary.md, chunk_id: 2)\nbeneficiaries. Standardized Implementation Indication/ICD-10 code-linked formulary ensuring ease of implementation for Payers & Providers Use of Generics Introduction of therapeutically equivalent and more affordable generic medications as against br...",
+      "generation_error": null
+    },
+    {
+      "question": "How many new benefits and amended benefits does the tiers benefit package introduce?",
+      "tags": [
+        "numeric"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "ebp_5_tiers.md"
+      ],
+      "retrieved_sources": [
+        "ebp_5_tiers.md",
+        "ebp_5_tiers.md",
+        "ebp_5_tiers.md",
+        "ebp_5_tiers.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\ebp_5_tiers.md, chunk_id: 1)\npayments & coverage Reduction in disease complications Tiers Benefit Package for Private Health Insurance Beneficiaries ## Page 2 Table of Contents 1 Introduction Basic Insurance Policy Gold Insurance Policy Platinum Insurance Policy Conclusion ## Page ...",
+      "generation_error": null
+    },
+    {
+      "question": "What are the names of the insurance policy tiers in the benefit package?",
+      "tags": [
+        "scope"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "ebp_5_tiers.md"
+      ],
+      "retrieved_sources": [
+        "ebp_5_tiers.md",
+        "ebp_5_tiers.md",
+        "ebp_5_tiers.md",
+        "ebp_5_tiers.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 1,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\ebp_5_tiers.md, chunk_id: 1)\npayments & coverage Reduction in disease complications Tiers Benefit Package for Private Health Insurance Beneficiaries ## Page 2 Table of Contents 1 Introduction Basic Insurance Policy Gold Insurance Policy Platinum Insurance Policy Conclusion ## Page ...",
+      "generation_error": null
+    },
+    {
+      "question": "Up to what age are sons covered as dependents under the Essential Benefit Package?",
+      "tags": [
+        "numeric"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "essential_benefit_package.md"
+      ],
+      "retrieved_sources": [
+        "essential_benefit_package.md",
+        "essential_benefit_package.md",
+        "ebp_5_tiers.md",
+        "essential_benefit_package.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\essential_benefit_package.md, chunk_id: 5)\nparty to the insurance parties under the Executive Regulations. ## Page 6 15. Insurance company: A cooperative insurance company licensed by SAMA to operate in the Kingdom and accredited by the CHI to provide cooperative health insurance. ...",
+      "generation_error": null
+    },
+    {
+      "question": "For how long is a newborn covered immediately after delivery under the Essential Benefit Package?",
+      "tags": [
+        "numeric"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "essential_benefit_package.md"
+      ],
+      "retrieved_sources": [
+        "essential_benefit_package.md",
+        "ebp_5_tiers.md",
+        "essential_benefit_package.md",
+        "essential_benefit_package.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\essential_benefit_package.md, chunk_id: 35)\nof the i nception date shown in the Policy schedule, or from the date of employment contract for the workers joining work in a later time. B. For Dependents: Insurance cover shall become effective for dependents as of the date, during whi...",
+      "generation_error": null
+    },
+    {
+      "question": "Are dental implants, dentures, crowns and cosmetic dental work covered under the Essential Benefit Package?",
+      "tags": [
+        "scope"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "essential_benefit_package.md"
+      ],
+      "retrieved_sources": [
+        "essential_benefit_package.md",
+        "ebp_5_tiers.md",
+        "essential_benefit_package.md",
+        "ebp_5_tiers.md"
+      ],
+      "recall_1_hit": true,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 1,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\essential_benefit_package.md, chunk_id: 29)\nthe Ministry of Health, such as vaccinations as well as maternity and childcare). 5. Treatment received by the insured free of charge. 6. Recreational therapy, general physical health programs, and treatment in social welfare institutions...",
+      "generation_error": null
+    },
+    {
+      "question": "What co-insurance applies to medicines with no generic alternative under the Essential Benefit Package?",
+      "tags": [
+        "numeric"
+      ],
+      "is_answerable": true,
+      "expected_sources": [
+        "essential_benefit_package.md"
+      ],
+      "retrieved_sources": [
+        "ebp_5_tiers.md",
+        "essential_benefit_package.md",
+        "ebp_5_tiers.md",
+        "ebp_5_tiers.md"
+      ],
+      "recall_1_hit": false,
+      "recall_k_hit": true,
+      "keyword_hits": 0,
+      "keyword_total": 2,
+      "language_match": true,
+      "abstain_hit": null,
+      "answer": "[1] (source: real\\ebp_5_tiers.md, chunk_id: 3)\ncoverage for sexually transmitted diseases Facilitate access to services Comprehensive insurance coverage Reduction in disease complications ## Page 4 Basic Insurance Policy CHI's Essential Benefit Package (EBP) is a value-driven policy framework design...",
+      "generation_error": null
+    }
+  ]
+}
