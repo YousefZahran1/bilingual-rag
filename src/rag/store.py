@@ -22,6 +22,12 @@ class RetrievedPassage:
     language: str
     score: float
     rerank_score: float | None = None
+    # Populated only by UnifiedIndex retrieval (parent-expanded passages carry
+    # doc metadata); None for the legacy dense/hybrid_rerank/bm25_only/smart
+    # paths so existing citations stay unchanged.
+    doc_type: str | None = None
+    doc_title: str | None = None
+    clause: str | None = None
 
 
 class VectorStore:

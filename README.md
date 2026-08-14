@@ -29,10 +29,14 @@ flowchart TD
     BM25idx -.-> Hybrid
     BM25idx -.-> BM25Search
 
-    BM25Search --> Passages["Top-4 passages + citations"]
+    Docs --> Unified["UnifiedIndex.build (src/rag/pipeline.py)<br/>doc-type routing → structure/token chunking →<br/>parent-child split → rich metadata<br/>(doc_type, clause_number, language, ...)"]
+    Unified --> UnifiedRetrieve["UnifiedIndex.retrieve / retrieve_two_stage<br/>hybrid dense+BM25+RRF over children,<br/>optional metadata filters, parent-section expansion"]
+    UnifiedRetrieve --> Passages
+
+    BM25Search --> Passages["Top-4 passages + citations<br/>(unified modes also carry doc_type/doc_title/clause)"]
     Hybrid --> Passages
-    Passages --> Gen["④ Generator (pluggable: OpenAI / Anthropic / OpenRouter / mock)<br/>answers in the query's language -- 100% language_match, measured"]
-    Gen --> API["FastAPI /chat"] --> UI["Streamlit UI (RTL-aware)"]
+    Passages --> Gen["④ Generator (pluggable: OpenAI / Anthropic / OpenRouter / mock)<br/>answers in the query's language"]
+    Gen --> API["FastAPI /chat<br/>retrieval_mode: dense | hybrid_rerank | smart | unified | unified_two_stage<br/>filters: {doc_type, language, doc_id, version}"] --> UI["Streamlit UI (RTL-aware, doc_type/language facets)"]
 ```
 
 Detailed per-module flowcharts, hand-checked line-by-line against the code they document:
@@ -53,6 +57,8 @@ Four things this pipeline is built to get right for bilingual (Arabic/English) r
 4. **Language-consistent synthesis** — the generator answers in the language the question was asked in. **Correction:** the previously-reported "100% language_match (89/89)" was measured with a vacuous metric (it compared the question's language to itself, not the answer's — see `docs/EVAL.md`). Fixed to score the actual answer's language; honest current number is **81% (96/118)** under `smart` mode, mock provider — see the Eval table below.
 
 `VectorStore.retrieve()` (dense-only) and `retrieve_pipeline()` (unconditional hybrid+rerank) both stay reachable via `retrieval_mode: dense | hybrid_rerank | smart` on `/chat`. **Note:** `smart` is still the default, but after fixing the language_match metric and re-running against the eval set (which had silently grown from 89 to 118 questions since the numbers below were first recorded), `smart` no longer strictly dominates the other modes on every metric — see the Eval table below and `docs/ROADMAP.md` for the follow-up to re-tune the numeric router against the current eval set.
+
+**`UnifiedIndex` is wired in**: `retrieval_mode: unified | unified_two_stage` are live on `/chat` and the Streamlit UI (mode selector + doc_type/language facets), backed by `src/rag/pipeline.py`'s parent-child, metadata-filtered hybrid retrieval — see `docs/PIPELINE.md`. Pass `filters: {"doc_type": "formulary", "language": "ar"}` (allowlisted keys: `doc_type`, `language`, `doc_id`, `version`) to pre-filter the search. Citations from these modes carry `doc_type`/`doc_title`/`clause` (e.g. "Insurance Drug Formulary (IDF), clause 20" instead of a raw chunk id); other modes leave those fields `null`. If the index hasn't been built yet, `/chat` returns `409` with the exact build command rather than a 500. `unified` isn't the default `retrieval_mode` — see the Eval table below for why (it wins recall@4 and language_match but loses keyword_coverage to `hybrid_rerank`/`smart` on the current eval set).
 
 ## Run locally
 
@@ -125,7 +131,16 @@ The newest layer, built and measured on the real corpus (`docs/PIPELINE.md`, tun
 - **Two-stage hierarchical retrieval** (`retrieve_two_stage`): parent-summary routing → scoped hybrid search → cross-encoder rerank → parent expansion. Implemented and verified; on a 4-document corpus single-stage still wins (15/15 vs 14/15), so it stays opt-in until the corpus grows to hundreds of documents.
 - **Regression gate** (`scripts/bench_pipeline.py`): ingests a corpus and fails (non-zero exit) if recall or keyword coverage drops below threshold — a CI gate for new document ingests.
 
-Integration status: FastAPI `/chat` and the Streamlit UI still call the v0.3 retrieval path (`smart` router). Wiring them to `UnifiedIndex.retrieve` (with metadata filters surfaced as UI facets) is the remaining step before deploy.
+**Wired into `/chat` and the UI** (`retrieval_mode: unified | unified_two_stage`, `filters: {doc_type, language, doc_id, version}`). Eval parity against the current 118-question `data/sample` set (`eval/results/v0.5_unified*.json`), same mock-provider methodology as the table above:
+
+| Metric | smart | hybrid_rerank | **unified** | unified_two_stage |
+|---|---|---|---|---|
+| retrieval_recall@1 | 84/100 (84%) | 89/100 (89%) | 87/100 (87%) | 87/100 (87%) |
+| retrieval_recall@4 | 93/100 (93%) | 93/100 (93%) | **96/100 (96%)** | 94/100 (94%) |
+| keyword_coverage | 80/153 (52%) | **88/153 (58%)** | 72/153 (47%) | 71/153 (46%) |
+| language_match | 96/118 (81%) | 94/118 (80%) | **109/118 (92%)** | 100/118 (85%) |
+
+`unified` wins recall@4 and language_match outright, but loses keyword_coverage to `hybrid_rerank`/`smart` — so per the decision rule (must match or beat `smart` on **both** recall@4 and keyword_coverage to become default), `smart` stays the default `retrieval_mode`. Both are real, useful modes for different jobs: `unified` for clause-precise citations with metadata filtering on structured regulatory docs (its actual design target — see the data/real numbers below, where it hits parent recall 15/15 same as the numbers in the table two sections up), `smart`/`hybrid_rerank` for the unstructured/mixed-domain sample corpus. `unified_two_stage` slightly underperforms single-stage `unified` here too, consistent with `docs/PIPELINE.md`'s finding that document-routing has nothing to gain at this corpus size.
 
 ## Why this exists
 

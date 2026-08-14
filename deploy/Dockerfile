@@ -17,19 +17,28 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     VECTOR_DIR=/data/chroma_db \
-    INDEX_DIR=/data/index_data
+    INDEX_DIR=/data/index_data \
+    UNIFIED_INDEX_DIR=/data/unified_index
 
 EXPOSE 8000
 
-# Ingest the sample corpus once at build, so the image works out of the box.
-# This also builds the BM25 sidecar (src/rag/ingest.py writes both).
+# Ingest the sample corpus once at build, so the image works out of the box
+# for the legacy dense/hybrid_rerank/smart modes. This also builds the BM25
+# sidecar (src/rag/ingest.py writes both).
 RUN python -m src.rag.ingest data/sample
 
+# Build the UnifiedIndex from data/real (not data/sample): the real corpus
+# is what has actual clause numbers, doc_type=formulary/contract/policy
+# metadata, and the specific facts (e.g. the 30 SAR co-payment clause) the
+# unified/unified_two_stage modes are meant to demo -- data/sample is
+# mostly unstructured prose and wouldn't showcase the feature.
+RUN python -m src.rag.pipeline build data/real --persist "$UNIFIED_INDEX_DIR"
+
 # Warm the cross-encoder re-ranker at build time. Reranking only happens at
-# query time (unlike the embedding model, which ingest.py above already
-# exercises) -- without this it would silently lazy-download on the first
-# live /chat request in production, which is bad for a demo and a hard
-# failure if the deployed environment has restricted egress.
+# query time (unlike the embedding model, which ingest.py/pipeline.py above
+# already exercise) -- without this it would silently lazy-download on the
+# first live /chat request in production, which is bad for a demo and a
+# hard failure if the deployed environment has restricted egress.
 RUN python -c "from src.rag.reranker import CrossEncoderReranker; CrossEncoderReranker().warm()"
 
 CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

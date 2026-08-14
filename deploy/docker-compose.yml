@@ -3,7 +3,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    image: bilingual-rag:0.2.0
+    image: bilingual-rag:0.3.0
     ports:
       - "8000:8000"
     environment:
@@ -14,11 +14,12 @@ services:
     volumes:
       - chroma:/data/chroma_db
       - bm25index:/data/index_data
+      - unifiedindex:/data/unified_index
   ui:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    image: bilingual-rag:0.2.0
+    image: bilingual-rag:0.3.0
     depends_on:
       - api
     environment:
@@ -30,3 +31,4 @@ services:
 volumes:
   chroma:
   bm25index:
+  unifiedindex:
