@@ -139,9 +139,17 @@
   for confirmed text-layer corruption rather than extracted as garbage --
   see `data/real2/SOURCES.md`. `scripts/extract_pdfs.py` and
   `eval/validate_eval_set.py` generalized to a `--corpus` flag to support
-  this and any future corpus. Genuinely different-vertical generalization
-  (non-healthcare regulation, e.g. an external benchmark like MIRACL) is
-  still open, not attempted here.
+  this and any future corpus.
+- [x] External benchmark: `scripts/bench_miracl.py` against MIRACL Arabic
+  dev (public, independently human-annotated -- the one eval number in this
+  repo nobody here authored). Pool-based recall (not full 2M-passage
+  retrieval -- see the script's docstring and `docs/EVAL.md` for why that
+  scope choice is honest, not a shortcut hidden from the reader), 200
+  queries, seed 42. Unflattering, reported anyway: dense-only beats hybrid
+  at recall@1 (76.5% vs 68.5%) on MIRACL's general Wikipedia prose -- the
+  opposite of every one of this project's own eval sets, where BM25 pulls
+  its weight on structured regulatory text. The hybrid advantage is real
+  for this project's document types, not universal.
 - [ ] Retro-tag `data/sample` and `data/real`'s existing eval questions with
   a `split: dev|test` field (only `data/real2` has this so far) -- needed
   before Phase 6's router re-tuning can honestly separate "tuned on" from
