@@ -112,16 +112,26 @@
   which handicaps Arabic.
 - [ ] Update `docs/TOKENIZATION.md` numbers from `MAX_TOKENS = 400` to the new
   200 default.
-- [ ] **Re-tune/re-validate the numeric query router (`smart` mode) against
-  the current 118-question `data/sample/eval_questions.jsonl`.** The eval
-  set silently grew from 89 to 118 questions after the router was tuned and
-  validated against the smaller set; a fresh honest run (mock, all 4 modes,
-  `eval/results/v0.5_*.json`) shows `smart` no longer uniformly winning —
-  `hybrid_rerank` now leads recall@1, keyword_coverage, and language_match.
-  Needs the same subset-by-tag investigation `docs/EVAL.md`'s "honest
-  finding" section did originally, re-run against the current question set,
-  to find out whether the router's regex heuristic needs updating or the
-  smart-mode routing decision itself needs revisiting.
+- [x] **Re-tuned/re-validated the numeric query router (`smart` mode)
+  against the current 118-question `data/sample/eval_questions.jsonl`.**
+  Retro-tagged `data/sample` and `data/real`'s eval questions with
+  `split: dev|test` (~70/30, stratified by the `numeric` tag, seed 42) so
+  the investigation could tune on dev and verify once on test, per this
+  repo's discipline. Diagnosis: **not a router-classification bug** --
+  `is_numeric_query()` precision/recall against the current set (0.890 /
+  0.878) are basically unchanged from the original 0.85/0.92. The actual
+  finding: within the numeric subset itself, BM25-alone is now the *worst*
+  of the four modes at recall@1 on both dev (87% vs dense/hybrid_rerank's
+  96%) and test (68% vs 73%) -- the empirical premise `smart` was built on
+  (BM25 alone beats the reranker on numeric questions) no longer holds on
+  this grown, differently-composed question set. Fix: default
+  `retrieval_mode` changed from `smart` to `hybrid_rerank` in
+  `src/api/app.py`/`src/ui/app.py` (v0.4.0) -- `hybrid_rerank` matches or
+  beats every mode including `smart` on both splits, on recall@1,
+  recall@4, and keyword_coverage. `smart`/`query_router.py` kept, not
+  deleted -- it still ties `hybrid_rerank` on `data/real2`, so the routing
+  idea is corpus-dependent, not dead. Full investigation, tables, and the
+  root-cause discussion in `docs/EVAL.md`'s "v0.7" section.
 - [x] Fixed a real bug in the eval harness: `language_match` compared the
   question's own detected language to itself (`result.language` was already
   `detect_language(query)`), so it could never fail — see
@@ -150,10 +160,9 @@
   opposite of every one of this project's own eval sets, where BM25 pulls
   its weight on structured regulatory text. The hybrid advantage is real
   for this project's document types, not universal.
-- [ ] Retro-tag `data/sample` and `data/real`'s existing eval questions with
-  a `split: dev|test` field (only `data/real2` has this so far) -- needed
-  before Phase 6's router re-tuning can honestly separate "tuned on" from
-  "reported on" the way this corpus's numbers already do.
+- [x] Retro-tagged `data/sample` and `data/real`'s existing eval questions
+  with a `split: dev|test` field (~70/30, stratified by the `numeric` tag,
+  seed 42) -- used immediately by the router re-tune above.
 
 ## Stretch
 - [ ] Fine-tuned reranker on Saudi healthcare corpus

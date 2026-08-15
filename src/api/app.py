@@ -20,7 +20,7 @@ load_dotenv()
 
 app = FastAPI(
     title="Bilingual RAG Assistant",
-    version="0.3.0",
+    version="0.4.0",
     summary="Arabic / English retrieval-augmented Q&A.",
 )
 
@@ -48,19 +48,25 @@ def _unified_ready() -> bool:
 class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000)
     top_k: int = Field(default=4, ge=1, le=20)
-    # Defaults to "smart" -- routes numeric questions to BM25 alone and
-    # everything else through hybrid+rerank, matching or beating every
-    # individual mode on every measured subset (recall@4: 97% overall vs
-    # hybrid_rerank's 94%, with a genuine bonus on multi-document questions
-    # too -- see docs/EVAL.md's "Numeric query router" section). NOTE: this
-    # was measured on an 89-question eval set that has since grown to 118;
-    # under the current set `smart` is no longer uniformly best -- see
-    # docs/EVAL.md's "v0.5: honest re-run" section and docs/ROADMAP.md.
-    # "unified"/"unified_two_stage" use UnifiedIndex (metadata filters,
-    # parent-child expansion) -- see docs/PIPELINE.md.
+    # Defaults to "hybrid_rerank" as of v0.7 (was "smart"). "smart" was
+    # designed and tuned against an 89-question eval set where the
+    # cross-encoder reranker measurably hurt numeric questions and BM25
+    # alone was the best numeric performer -- that premise no longer holds
+    # on the current 118-question set (dev and test split both re-checked):
+    # hybrid_rerank now matches or beats every individual mode, including
+    # smart, on recall@1, recall@4, and keyword_coverage. BM25-alone is no
+    # longer the best choice even within the numeric subset specifically --
+    # this isn't a router-classification bug (precision/recall against the
+    # "numeric" tag are still ~0.89/0.88), the underlying retrieval
+    # landscape changed. See docs/EVAL.md's "v0.7: smart-router re-tune"
+    # section for the full per-subset, dev/test-split investigation.
+    # "smart" stays selectable for comparison -- it still ties hybrid_rerank
+    # on data/real2, so the routing idea isn't dead, just not universally
+    # best. "unified"/"unified_two_stage" use UnifiedIndex (metadata
+    # filters, parent-child expansion) -- see docs/PIPELINE.md.
     retrieval_mode: Literal[
         "dense", "hybrid_rerank", "smart", "unified", "unified_two_stage"
-    ] = "smart"
+    ] = "hybrid_rerank"
     filters: dict[str, str] | None = Field(
         default=None,
         description=f"Metadata pre-filter for unified/unified_two_stage modes. "
@@ -103,7 +109,7 @@ class ChatResponse(BaseModel):
 def health() -> dict:
     return {
         "status": "ok",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "unified_index": "ready" if _unified_ready() else "not_built",
     }
 

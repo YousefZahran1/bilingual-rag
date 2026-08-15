@@ -1,16 +1,25 @@
-"""Numeric-intent query classification, used to route around the reranker.
+"""Numeric-intent query classification -- was used to route around the
+reranker; the routing DECISION is no longer default (see below), but the
+classifier itself still works and is used by `--mode smart`.
 
-docs/EVAL.md found that the cross-encoder reranker specifically hurts
-numeric-answer questions (BM25 alone has the best measured recall@4 on
+docs/EVAL.md originally found that the cross-encoder reranker specifically
+hurt numeric-answer questions (BM25 alone had the best measured recall@4 on
 them) while helping everything else a lot. `is_numeric_query()` is the
 routing signal `fusion.py:smart_retrieve()` uses to send numeric queries to
 BM25 alone and everything else through the full hybrid+rerank pipeline.
 
-The heuristic was tuned empirically against the real 89-question eval set
-(data/sample/eval_questions.jsonl's manually-assigned "numeric" tag), not
-guessed: precision 0.85, recall 0.92 (see tests/test_query_router.py's
+The heuristic was tuned empirically against the original 89-question eval
+set (data/sample/eval_questions.jsonl's manually-assigned "numeric" tag),
+not guessed: precision 0.85, recall 0.92 (see tests/test_query_router.py's
 data-driven regression test, which re-measures this against the committed
-eval file so drift is caught). Two tiers:
+eval file so drift is caught). Re-measured against the current 118-question
+set: precision 0.890, recall 0.878 -- the classifier itself is still
+accurate. What changed is the routing DECISION built on top of it: BM25
+alone is no longer the best numeric performer on the grown eval set (see
+docs/EVAL.md's "v0.7" section), so `retrieval_mode` defaults to
+`hybrid_rerank` now, not `smart`. `smart` stays available and still ties
+`hybrid_rerank` on data/real2 -- the classifier below isn't wrong, its
+downstream payoff is just corpus-dependent now. Two tiers:
 
 1. Phrase patterns -- most numeric-tagged questions ask a quantity
    question without the number appearing in the question text itself

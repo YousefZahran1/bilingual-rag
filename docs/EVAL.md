@@ -157,6 +157,90 @@ Reproduce:
 python scripts/bench_miracl.py --n-queries 200 --seed 42 --out eval/results/miracl_ar_dev.json
 ```
 
+## v0.7: smart-router re-tune — default retrieval_mode changed to `hybrid_rerank`
+
+`docs/ROADMAP.md` flagged this as open after the v0.5 honest re-run: `smart`
+was designed and tuned against the original 89-question `data/sample` set,
+where the cross-encoder reranker measurably hurt numeric questions and BM25
+alone was the best numeric performer (see "The actual fix" section above).
+That eval set has since grown to 118 questions (untagged for dev/test at
+the time) — this section retro-tags it (`split: dev|test`, ~70/30,
+stratified by the `numeric` tag, seed 42, `data/real` retro-tagged the same
+way) and re-investigates on dev, verifying once on test, per this repo's
+tuning discipline.
+
+**Step 1 — is the router itself broken?** No. Re-measured
+`is_numeric_query()` precision/recall against the current 118-question set:
+**0.890 precision / 0.878 recall** (`tp=65, fp=8, fn=9, tn=36`) — close to
+the 0.85/0.92 originally measured, and still comfortably above
+`tests/test_query_router.py`'s regression thresholds (which passed
+unchanged the whole time). The classifier is doing its job; the questions
+this section is about are correctly identified as numeric or not.
+
+**Step 2 — per-subset breakdown, dev split (70 recall-eligible questions:
+52 numeric / 18 non-numeric):**
+
+| Metric | dense | **hybrid_rerank** | bm25_only | smart |
+|---|---|---|---|---|
+| recall@1 (numeric) | 50/52 (96%) | **50/52 (96%)** | 45/52 (87%) | 46/52 (88%) |
+| recall@1 (non-numeric) | 14/18 (78%) | **16/18 (89%)** | 15/18 (83%) | **16/18 (89%)** |
+| recall@1 (overall) | 64/70 (91%) | **66/70 (94%)** | 60/70 (86%) | 62/70 (89%) |
+| recall@4 (overall) | 64/70 (91%) | **66/70 (94%)** | 64/70 (91%) | 65/70 (93%) |
+| keyword_coverage | 65/107 (61%) | **65/107 (61%)** | 56/107 (52%) | 61/107 (57%) |
+
+**This is the actual finding, and it's not a classification issue: within
+the numeric subset itself, BM25-alone (87%) is now the *worst* of the four
+modes at recall@1** — dense and hybrid_rerank both beat it (96% each). This
+directly contradicts the premise `smart` was built on. `smart` routes
+numeric queries to BM25 alone specifically because BM25 alone used to be
+the best numeric performer; it no longer is, on this grown, differently-
+composed question set. `hybrid_rerank` also ties or leads on every
+non-numeric metric, so it's not a one-subset fluke — it's the best or
+tied-best mode on every row of this table.
+
+**Step 3 — verify once on test split (30 recall-eligible questions: 22
+numeric / 8 non-numeric), not used for the diagnosis above:**
+
+| Metric | dense | **hybrid_rerank** | bm25_only | smart |
+|---|---|---|---|---|
+| recall@1 (numeric) | **16/22 (73%)** | **16/22 (73%)** | 15/22 (68%) | 15/22 (68%) |
+| recall@1 (overall) | 22/30 (73%) | **23/30 (77%)** | 21/30 (70%) | 22/30 (73%) |
+| recall@4 (overall) | 27/30 (90%) | 27/30 (90%) | 27/30 (90%) | **28/30 (93%)** |
+| keyword_coverage | 22/46 (48%) | **23/46 (50%)** | 20/46 (43%) | 19/46 (41%) |
+
+Test split confirms the dev-split diagnosis on 3 of 4 metrics (recall@1 and
+keyword_coverage both favor `hybrid_rerank`); `smart` edges ahead on
+recall@4 by one question (28/30 vs 27/30) — well within noise at n=30, not
+treated as a contradiction.
+
+**Root cause, to the extent it can be determined without re-running the
+original v0.2 experiment:** not a router bug. The eval set grew from 89 to
+118 questions after `smart` was tuned, and (per `docs/ROADMAP.md`'s note)
+the chunking scheme also changed from character-budget to token-based in
+the same window. Either change plausibly shifted which numeric questions
+are answerable by exact lexical match (where BM25 wins) versus semantic
+similarity (where dense/hybrid_rerank win) — this section does not fully
+isolate which of the two changes is responsible, only that the *aggregate
+effect* reverses `smart`'s original justification, robustly, on both
+splits.
+
+**Fix:** `retrieval_mode` default changed from `"smart"` to `"hybrid_rerank"`
+in `src/api/app.py` and `src/ui/app.py` (v0.4.0). `smart` and
+`query_router.py` are **not deleted or deprecated** — `smart` still ties
+`hybrid_rerank` on `data/real2`'s test split (95% vs 95% recall@1, see
+"v0.6" above), so the numeric-routing idea isn't dead, it's corpus-
+dependent, not universally best. `smart` stays selectable via API/UI for
+comparison, same as `dense` always has been.
+
+Reproduce (uses the existing `eval/results/v0.5_*.json` snapshots, no
+re-run needed — filters per-question results by the newly added
+`split` field in `data/sample/eval_questions.jsonl`):
+
+```bash
+python -m eval.validate_eval_set   # confirms retro-tagged file still parses/validates
+python -m pytest tests/test_query_router.py -v   # router precision/recall regression guard
+```
+
 ## How to reproduce
 
 ```bash

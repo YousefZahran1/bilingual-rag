@@ -77,13 +77,15 @@ def smart_retrieve(
     top_k: int = 4,
     fusion_top_n: int = 20,
 ) -> list[RetrievedPassage]:
-    """Routes numeric-answer-expecting queries to BM25 alone (empirically
-    the best measured method for them, see docs/EVAL.md's "Numeric query
-    router" section) and everything else through the full hybrid+rerank
-    pipeline (which hits a perfect 100% recall@4 on non-numeric questions).
-    The cross-encoder reranker is what hurts numeric questions specifically
-    -- BM25 and RRF fusion don't -- so numeric queries skip it entirely
-    rather than getting a diluted middle-ground treatment."""
+    """Routes numeric-answer-expecting queries to BM25 alone and everything
+    else through the full hybrid+rerank pipeline. Originally built because
+    BM25 alone measured as the best numeric performer on the 89-question
+    eval set (docs/EVAL.md's "Numeric query router" section) -- that no
+    longer holds on the current, grown eval set (docs/EVAL.md's "v0.7"
+    section: BM25-alone is now the *worst* numeric performer), which is why
+    `hybrid_rerank`, not this function, is the default `retrieval_mode` as
+    of v0.4.0. Still ties `hybrid_rerank` on data/real2, so kept as a
+    selectable mode, not deleted."""
     if is_numeric_query(query):
         return bm25_index.search(query, top_k=top_k)
     return retrieve_pipeline(

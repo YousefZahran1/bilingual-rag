@@ -57,9 +57,9 @@ Four things this pipeline is built to get right for bilingual (Arabic/English) r
 3. **Cross-lingual reranking** — `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` covers 14 languages including Arabic; a numeric-query router (`query_router.py`) bypasses it specifically for numeric questions, where it was empirically found to hurt (`docs/EVAL.md`).
 4. **Language-consistent synthesis** — the generator answers in the language the question was asked in. **Correction:** the previously-reported "100% language_match (89/89)" was measured with a vacuous metric (it compared the question's language to itself, not the answer's — see `docs/EVAL.md`). Fixed to score the actual answer's language; honest current number is **81% (96/118)** under `smart` mode, mock provider — see the Eval table below.
 
-`VectorStore.retrieve()` (dense-only) and `retrieve_pipeline()` (unconditional hybrid+rerank) both stay reachable via `retrieval_mode: dense | hybrid_rerank | smart` on `/chat`. **Note:** `smart` is still the default, but after fixing the language_match metric and re-running against the eval set (which had silently grown from 89 to 118 questions since the numbers below were first recorded), `smart` no longer strictly dominates the other modes on every metric — see the Eval table below and `docs/ROADMAP.md` for the follow-up to re-tune the numeric router against the current eval set.
+`VectorStore.retrieve()` (dense-only) and `retrieve_pipeline()` (unconditional hybrid+rerank) both stay reachable via `retrieval_mode: dense | hybrid_rerank | smart` on `/chat`. **`hybrid_rerank` is the default as of v0.4.0** (was `smart`): after fixing the language_match metric and re-running against the eval set (which had silently grown from 89 to 118 questions since `smart` was tuned), `smart`'s core premise — BM25 alone beats the reranker on numeric questions — no longer held, on both a dev and a held-out test split. See `docs/EVAL.md`'s "v0.7" section for the full investigation. `smart` stays selectable and still ties `hybrid_rerank` on `data/real2` — the routing idea isn't dead, just not universally best.
 
-**`UnifiedIndex` is wired in**: `retrieval_mode: unified | unified_two_stage` are live on `/chat` and the Streamlit UI (mode selector + doc_type/language facets), backed by `src/rag/pipeline.py`'s parent-child, metadata-filtered hybrid retrieval — see `docs/PIPELINE.md`. Pass `filters: {"doc_type": "formulary", "language": "ar"}` (allowlisted keys: `doc_type`, `language`, `doc_id`, `version`) to pre-filter the search. Citations from these modes carry `doc_type`/`doc_title`/`clause` (e.g. "Insurance Drug Formulary (IDF), clause 20" instead of a raw chunk id); other modes leave those fields `null`. If the index hasn't been built yet, `/chat` returns `409` with the exact build command rather than a 500. `unified` isn't the default `retrieval_mode` — see the Eval table below for why (it wins recall@4 and language_match but loses keyword_coverage to `hybrid_rerank`/`smart` on the current eval set).
+**`UnifiedIndex` is wired in**: `retrieval_mode: unified | unified_two_stage` are live on `/chat` and the Streamlit UI (mode selector + doc_type/language facets), backed by `src/rag/pipeline.py`'s parent-child, metadata-filtered hybrid retrieval — see `docs/PIPELINE.md`. Pass `filters: {"doc_type": "formulary", "language": "ar"}` (allowlisted keys: `doc_type`, `language`, `doc_id`, `version`) to pre-filter the search. Citations from these modes carry `doc_type`/`doc_title`/`clause` (e.g. "Insurance Drug Formulary (IDF), clause 20" instead of a raw chunk id); other modes leave those fields `null`. If the index hasn't been built yet, `/chat` returns `409` with the exact build command rather than a 500. `unified` isn't the default `retrieval_mode` — see the Eval table below for why (it wins recall@4 and language_match but loses keyword_coverage to `hybrid_rerank`, the current default, on this eval set).
 
 ## Run locally
 
@@ -73,19 +73,23 @@ below being refreshed, and `language_match` was a vacuous metric (it
 compared the question's language to itself, so it could never fail) —
 both are fixed in these numbers (`eval/results/v0.5_*.json`):
 
-| Metric | dense | **hybrid_rerank** | bm25_only | smart (default) |
+| Metric | dense | **hybrid_rerank (default)** | bm25_only | smart |
 |---|---|---|---|---|
 | retrieval_recall@1 | 86/100 (86%) | **89/100 (89%)** | 81/100 (81%) | 84/100 (84%) |
 | retrieval_recall@4 | 91/100 (91%) | **93/100 (93%)** | 91/100 (91%) | **93/100 (93%)** |
 | keyword_coverage | 87/153 (57%) | **88/153 (58%)** | 76/153 (50%) | 80/153 (52%) |
 | language_match | **106/118 (90%)** | 94/118 (80%) | 103/118 (87%) | 96/118 (81%) |
 
-`smart` is still the default `retrieval_mode` but is **not** the best
-performer on this honest run — `hybrid_rerank` leads on 3 of 4 metrics.
-The numeric-query router's routing logic was tuned against the smaller,
-differently-tagged 89-question set and hasn't been re-validated against
-the current 118-question set. This is a known open item, tracked in
-`docs/ROADMAP.md`, not a claim this README is making.
+`hybrid_rerank` leads on 3 of 4 metrics here, which is why it replaced
+`smart` as the default `retrieval_mode` in v0.4.0. The numeric-query
+router's routing logic (send numeric questions to BM25 alone) was tuned
+against the smaller, differently-tagged 89-question set; re-investigated
+on a dev/test split of the current 118-question set in `docs/EVAL.md`'s
+"v0.7" section — BM25-alone is no longer the best numeric performer, which
+was the whole premise `smart` was built on. Not a router bug (its
+precision/recall against the "numeric" tag are basically unchanged); the
+underlying retrieval landscape shifted. `smart` stays selectable and still
+ties `hybrid_rerank` on `data/real2`.
 
 **Real LLM** (OpenRouter, `openai/gpt-oss-20b:free`) — predates both the
 token-based chunking switch and the language_match fix above, and hasn't
@@ -141,7 +145,7 @@ The newest layer, built and measured on the real corpus (`docs/PIPELINE.md`, tun
 | keyword_coverage | 80/153 (52%) | **88/153 (58%)** | 72/153 (47%) | 71/153 (46%) |
 | language_match | 96/118 (81%) | 94/118 (80%) | **109/118 (92%)** | 100/118 (85%) |
 
-`unified` wins recall@4 and language_match outright, but loses keyword_coverage to `hybrid_rerank`/`smart` — so per the decision rule (must match or beat `smart` on **both** recall@4 and keyword_coverage to become default), `smart` stays the default `retrieval_mode`. Both are real, useful modes for different jobs: `unified` for clause-precise citations with metadata filtering on structured regulatory docs (its actual design target — see the data/real numbers below, where it hits parent recall 15/15 same as the numbers in the table two sections up), `smart`/`hybrid_rerank` for the unstructured/mixed-domain sample corpus. `unified_two_stage` slightly underperforms single-stage `unified` here too, consistent with `docs/PIPELINE.md`'s finding that document-routing has nothing to gain at this corpus size.
+`unified` wins recall@4 and language_match outright, but loses keyword_coverage to `hybrid_rerank` — so per the decision rule (must match or beat the current default on **both** recall@4 and keyword_coverage to become the new default), `hybrid_rerank` stays the default `retrieval_mode` (see `docs/EVAL.md`'s "v0.7" section for why `hybrid_rerank`, not `smart`, is the comparison baseline now). Both `unified` and `hybrid_rerank` are real, useful modes for different jobs: `unified` for clause-precise citations with metadata filtering on structured regulatory docs (its actual design target — see the data/real numbers below, where it hits parent recall 15/15 same as the numbers in the table two sections up), `hybrid_rerank`/`smart` for the unstructured/mixed-domain sample corpus. `unified_two_stage` slightly underperforms single-stage `unified` here too, consistent with `docs/PIPELINE.md`'s finding that document-routing has nothing to gain at this corpus size.
 
 ## External benchmark: MIRACL (Arabic)
 
