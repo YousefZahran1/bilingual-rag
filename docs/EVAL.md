@@ -107,6 +107,56 @@ python -m eval.run_eval data/real2/eval_questions.jsonl --top-k 4 --mode smart -
 # ...and dense / hybrid_rerank / bm25_only / unified / unified_two_stage
 ```
 
+## External benchmark: MIRACL (Arabic), `scripts/bench_miracl.py`
+
+Every number above comes from a question set this project authored itself —
+useful for regression testing, but it can't rule out the eval and the
+system being tuned to agree with each other. MIRACL (Multilingual
+Information Retrieval Across a Continuum of Languages) is a public,
+independently human-annotated retrieval benchmark; this is the one number
+in this repo with ground truth nobody here wrote.
+
+**Scope, honestly:** the official MIRACL task retrieves against the full
+~2M-passage Arabic Wikipedia corpus. Indexing 2M passages doesn't fit this
+project's zero-cost-to-run design, so `scripts/bench_miracl.py` instead
+scores recall over each query's own MIRACL-provided candidate pool
+(`positive_passages` + `negative_passages`, the same passages MIRACL's
+annotators judged for that query — typically ~10-15 per query, deterministic
+subsample of 200 queries, seed committed in the script). This is real,
+externally-judged data, but a much easier task than full-corpus
+retrieval (far fewer distractors) — **these numbers are not comparable to
+the official MIRACL leaderboard** and shouldn't be cited as such.
+
+200 queries, `intfloat/multilingual-e5-small` (this project's embedding
+model), seed 42:
+
+| Metric | dense | hybrid (dense+BM25, RRF k=60) |
+|---|---|---|
+| recall@1 | **153/200 (76.5%)** | 137/200 (68.5%) |
+| recall@4 | 191/200 (95.5%) | **192/200 (96.0%)** |
+
+**The unflattering finding, reported as-is:** `hybrid` *loses* to plain
+`dense` at recall@1 here — the opposite of this project's own eval sets
+(`data/sample`, `data/real`, `data/real2`), where hybrid/smart consistently
+match or beat dense-only. The likely reason: BM25 was validated on this
+project's structured regulatory documents (numbered clauses, defined
+terms, consistent phrasing), where exact-term matching pulls its weight.
+MIRACL's Arabic queries are natural questions against general Wikipedia
+prose — no clause numbers, no defined-term glossary, more paraphrase
+distance between query and answer — a domain where the lexical channel
+BM25 contributes to RRF fusion adds noise more often than signal, dragging
+the fused ranking below dense-alone. This is exactly the kind of
+domain-specific tuning-doesn't-transfer result the plan asked to surface
+honestly rather than paper over: the pipeline's hybrid advantage is real,
+but real *for this project's document types*, not a universal property of
+hybrid retrieval.
+
+Reproduce:
+
+```bash
+python scripts/bench_miracl.py --n-queries 200 --seed 42 --out eval/results/miracl_ar_dev.json
+```
+
 ## How to reproduce
 
 ```bash
