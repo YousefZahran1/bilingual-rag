@@ -29,16 +29,18 @@ with st.sidebar:
     st.title("Bilingual RAG")
     st.caption("Arabic / English question answering over your documents.")
     top_k = st.slider("Top-k passages", min_value=1, max_value=10, value=4)
-    mode_options = ["smart", "hybrid_rerank", "dense", "unified", "unified_two_stage"]
+    mode_options = ["hybrid_rerank", "smart", "dense", "unified", "unified_two_stage"]
     retrieval_mode = st.selectbox(
         "Retrieval mode",
         mode_options,
-        help="smart (default): routes numeric questions (counts, caps, "
-        "percentages) to BM25 alone -- the reranker specifically hurts "
-        "those -- everything else through hybrid_rerank. NOTE: on the "
-        "current 118-question eval set smart is no longer uniformly best -- "
-        "see docs/EVAL.md. hybrid_rerank: BM25 + dense fused with RRF, then "
-        "cross-encoder reranked. dense: the original dense-only path. "
+        help="hybrid_rerank (default as of v0.7): BM25 + dense fused with "
+        "RRF, then cross-encoder reranked. smart: routes numeric questions "
+        "(counts, caps, percentages) to BM25 alone instead of the reranker "
+        "-- this used to be the default and still ties hybrid_rerank on "
+        "data/real2, but on the current data/sample eval set hybrid_rerank "
+        "now matches or beats it on every measured metric (recall@1, "
+        "recall@4, keyword_coverage) -- see docs/EVAL.md's 'v0.7' section "
+        "for the full investigation. dense: the original dense-only path. "
         "unified: UnifiedIndex hybrid+parent-child retrieval with metadata "
         "filters (doc_type/language facets below). unified_two_stage: adds "
         "document-routing + rerank before parent expansion -- see "
