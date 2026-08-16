@@ -241,6 +241,75 @@ python -m eval.validate_eval_set   # confirms retro-tagged file still parses/val
 python -m pytest tests/test_query_router.py -v   # router precision/recall regression guard
 ```
 
+## Ragas (faithfulness, answer relevancy, context precision/recall) — infrastructure built, not run
+
+Every metric in this file so far is either free to run (mock provider) or,
+for the real-LLM section below, was run once when a key happened to be
+available. Ragas's faithfulness and answer_relevancy metrics only mean
+something against a **real** generated answer judged by a **real** LLM —
+there is no meaningful mock-provider version of "is this answer faithful
+to its context" when the mock answer is a literal excerpt of that context.
+
+`eval/run_ragas.py` (two-phase: `build` retrieves + generates real answers
+once, checkpointed and resumable; `judge` runs `ragas.evaluate()` against
+the frozen dataset `--runs` times, default 3, disk-cached per `(prompt,
+run_index)` so a crashed run resumes for free but the independent runs
+used to measure judge noise aren't collapsed into one cached answer) is
+written, tested, and working — **but has not been run for real numbers**,
+because this environment has no `OPENROUTER_API_KEY` (or any other LLM
+provider key) configured. This mirrors the exact blocker already
+documented for the "Real LLM results" section below (a working key was a
+prerequisite there too); Ragas just adds one more consumer of it.
+
+**What was actually verified**, using `LLM_PROVIDER=mock` (which makes the
+`build` phase's retrieval + checkpointing logic testable without a key,
+even though a mock-generated dataset wouldn't produce a meaningful judge
+score if `judge` were run against it):
+
+- `python -m eval.run_ragas build --corpus real --out <path>`: full
+  15-question run against `data/real`, correct JSONL schema (question,
+  answer, contexts, a `reference` field synthesized from
+  `expected_keywords` and explicitly flagged `reference_synthesized: true`
+  so it's never mistaken for a human-authored ground truth).
+- `--resume`: truncated a completed dataset to 10/15 rows, re-ran with
+  `--resume`, confirmed it printed "Resuming: 10 questions already in
+  ...", processed only the missing 5, and the final file had 15/15 unique
+  questions, no duplicates.
+- `--sample --seed`: deterministic subsampling on `data/sample` confirmed
+  working (5-question sample, mixed AR/EN questions as expected).
+- Found and fixed a real bug along the way: progress `print()` crashed on
+  Arabic questions under Windows' default cp1252 console codepage,
+  stopping the run partway through (data already written to `--out` was
+  safe — the crash was in the print, after the write+flush — but the
+  script still died). Fixed with a UTF-8 stdout reconfigure at import time.
+- Confirmed `judge` fails fast with a clear message
+  (`OPENROUTER_API_KEY not set...`) rather than a confusing stack trace
+  three network calls in, when no key is present.
+
+**A real, reproducible dependency bug found and worked around**: `ragas`'s
+latest release (0.4.3 as of writing) unconditionally imports
+`langchain_community.chat_models.vertexai` at package-import time, which no
+longer exists in current `langchain-community` releases — importing
+`ragas` at all raises `ModuleNotFoundError` before any of this project's
+code even runs. Confirmed this is a real upstream incompatibility, not a
+local environment issue: installing the optional `langchain-google-vertexai`
+package (which would seem the obvious fix) does not resolve it, because
+`langchain-community` itself no longer ships that submodule regardless.
+`ragas==0.2.15` (`requirements-dev.txt`) is the newest version confirmed to
+import cleanly; documented here so a future upgrade attempt doesn't
+silently reintroduce a broken import.
+
+To actually run this once a key is available:
+
+```bash
+export OPENROUTER_API_KEY=...
+python -m eval.run_ragas build --corpus real --out eval/results/ragas_real_dataset.jsonl
+python -m eval.run_ragas build --corpus sample --sample 30 --seed 42 \
+    --out eval/results/ragas_sample_dataset.jsonl --resume
+python -m eval.run_ragas judge --dataset eval/results/ragas_real_dataset.jsonl \
+    --runs 3 --out eval/results/ragas_real.json
+```
+
 ## How to reproduce
 
 ```bash
