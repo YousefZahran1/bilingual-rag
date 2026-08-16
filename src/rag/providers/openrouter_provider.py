@@ -18,6 +18,7 @@ openrouter.ai/models before picking a replacement).
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 
 
 class OpenRouterProvider:
@@ -50,3 +51,23 @@ class OpenRouterProvider:
                 f"OpenRouter returned no choices for model {self._model!r}: {resp!r}"
             )
         return resp.choices[0].message.content or ""
+
+    def stream(self, system: str, user: str) -> Iterator[str]:
+        stream = self._client.chat.completions.create(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=0.1,
+            stream=True,
+        )
+        for chunk in stream:
+            if not chunk.choices:
+                # Same malformed-chunk behavior noted in complete() above --
+                # skip rather than raise, a stream shouldn't die on one bad
+                # chunk when most of the answer already rendered.
+                continue
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield delta
