@@ -52,8 +52,19 @@
   measured numbers instead of just architectural claims. Added Cohere
   Rerank-3/3.5 to the reranker decision table as a considered-and-rejected
   alternative (paid API, conflicts with this project's free-cost design).
-- [ ] Ragas integration: faithfulness, answer relevancy, context precision
-  (now unblocked — needs a real LLM provider, which now exists)
+- [x] Ragas integration built (`eval/run_ragas.py`, `eval/_e5_embeddings.py`):
+  two-phase (build real answers once, checkpointed/resumable; judge N times
+  for mean±stdev, disk-cached per run so re-runs don't cost API calls
+  twice). Tested with `LLM_PROVIDER=mock` (retrieval/checkpoint/resume
+  logic only — a mock-generated dataset can't produce a meaningful
+  faithfulness score, so `judge` itself wasn't run). **Not run for real
+  numbers** — no `OPENROUTER_API_KEY` in this environment, the same
+  blocker already noted below for the real-LLM eval. Also found and
+  worked around a real upstream bug: `ragas` 0.4.3 (latest) fails to
+  import at all (`ModuleNotFoundError` on a `langchain_community`
+  submodule that no longer exists); pinned to `ragas==0.2.15`
+  (`requirements-dev.txt`), the newest version confirmed to import
+  cleanly. Full writeup in `docs/EVAL.md`.
 - [ ] Streaming responses
 - [ ] Citation hover-preview in UI
 - [ ] Conversation memory (short-term, per session)
