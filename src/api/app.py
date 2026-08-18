@@ -1,20 +1,23 @@
 """FastAPI service exposing /chat with citations."""
 from __future__ import annotations
 
+import json
 import os
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from src.rag.bm25_index import BM25Index
 from src.rag.fusion import retrieve_pipeline, smart_retrieve
-from src.rag.generator import generate
+from src.rag.generator import generate, generate_stream
 from src.rag.pipeline import UnifiedIndex
 from src.rag.reranker import CrossEncoderReranker
-from src.rag.store import VectorStore
+from src.rag.store import RetrievedPassage, VectorStore
 
 load_dotenv()
 
@@ -114,8 +117,9 @@ def health() -> dict:
     }
 
 
-@app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest) -> ChatResponse:
+def _retrieve_passages(req: ChatRequest) -> list[RetrievedPassage]:
+    """Shared by /chat and /chat/stream so the retrieval_mode dispatch (and
+    the 409 unified-index guard) can't drift between the two endpoints."""
     if req.retrieval_mode in ("unified", "unified_two_stage"):
         if not _unified_ready():
             raise HTTPException(
@@ -126,24 +130,44 @@ def chat(req: ChatRequest) -> ChatResponse:
                 },
             )
         if req.retrieval_mode == "unified":
-            passages = _unified.retrieve(req.question, filters=req.filters, parent_k=req.top_k)
-        else:
-            passages = _unified.retrieve_two_stage(
-                req.question, filters=req.filters, parent_k=req.top_k
-            )
-    elif req.retrieval_mode == "hybrid_rerank":
-        passages = retrieve_pipeline(
-            req.question, _store, _bm25_index, _reranker, top_k=req.top_k
-        )
-    elif req.retrieval_mode == "smart":
-        passages = smart_retrieve(
-            req.question, _store, _bm25_index, _reranker, top_k=req.top_k
-        )
-    else:
-        passages = _store.retrieve(req.question, top_k=req.top_k)
+            return _unified.retrieve(req.question, filters=req.filters, parent_k=req.top_k)
+        return _unified.retrieve_two_stage(req.question, filters=req.filters, parent_k=req.top_k)
+    if req.retrieval_mode == "hybrid_rerank":
+        return retrieve_pipeline(req.question, _store, _bm25_index, _reranker, top_k=req.top_k)
+    if req.retrieval_mode == "smart":
+        return smart_retrieve(req.question, _store, _bm25_index, _reranker, top_k=req.top_k)
+    return _store.retrieve(req.question, top_k=req.top_k)
+
+
+@app.post("/chat", response_model=ChatResponse)
+def chat(req: ChatRequest) -> ChatResponse:
+    passages = _retrieve_passages(req)
     result = generate(req.question, passages)
     return ChatResponse(
         answer=result.answer,
         citations=[Citation(**c) for c in result.citations],
         language=result.language,
     )
+
+
+@app.post("/chat/stream")
+def chat_stream(req: ChatRequest) -> StreamingResponse:
+    """Server-Sent Events: a `citations` event first (retrieval is already
+    done, and citations are built from the passages directly, not parsed
+    from the model's answer -- see generator.py -- so they're known before
+    a single token is generated), then `token` events as the answer
+    streams in, then a final `done` event. /chat is left completely
+    unchanged; this is an additive endpoint, not a replacement."""
+    passages = _retrieve_passages(req)
+    start, tokens = generate_stream(req.question, passages)
+
+    def _sse() -> Iterator[str]:
+        yield f"event: citations\ndata: {json.dumps({'citations': start.citations, 'language': start.language}, ensure_ascii=False)}\n\n"
+        try:
+            for chunk in tokens:
+                yield f"event: token\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
+        except Exception as exc:  # noqa: BLE001 -- a mid-stream provider failure must still close the SSE stream cleanly, not hang the client
+            yield f"event: error\ndata: {json.dumps({'error': str(exc)}, ensure_ascii=False)}\n\n"
+        yield "event: done\ndata: {}\n\n"
+
+    return StreamingResponse(_sse(), media_type="text/event-stream")

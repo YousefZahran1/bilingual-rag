@@ -10,7 +10,7 @@ A bilingual Arabic/English retrieval-augmented generation (RAG) system built for
 - Retrieves with a hybrid pipeline: dense search over a `multilingual-e5` + ChromaDB index, fused via Reciprocal Rank Fusion with a parallel BM25 index that uses Arabic-aware tokenization (diacritic/tatweel stripping, alef normalization).
 - Reranks fused candidates with a cross-lingual cross-encoder, bypassed for numeric questions by a query router that routes them to BM25 alone instead.
 - Detects the query language and answers in that language, with right-to-left (RTL) text handling in the Streamlit UI so Arabic answers render correctly.
-- Serves through a FastAPI backend with a Streamlit chat UI, and ships a real evaluation harness with retrieval recall@k, keyword coverage, language-match, and abstain-correctness metrics.
+- Serves through a FastAPI backend with a Streamlit chat UI — both `/chat` (blocking) and `/chat/stream` (Server-Sent Events: citations first, then the answer token-by-token) are live, every provider including the mock one supports streaming — and ships a real evaluation harness with retrieval recall@k, keyword coverage, language-match, and abstain-correctness metrics.
 - Ships a **real regulatory corpus** (`data/real`): four Council of Health Insurance (CCHI) documents — Unified Contract, Essential Benefit Package, drug formulary, EBP tiers — extracted from the official PDFs with PyMuPDF (`scripts/extract_pdfs.py`, RTL-Arabic-aware, `.docx` also supported), with 15 grounded eval questions.
 - Ships a **second real corpus** (`data/real2`, 10 documents): CHI's payer/provider classification and qualification standards, plus two private insurers' own policy documents (Bupa Arabia, Tawuniya) — a different angle within the same domain, used to test whether the pipeline generalizes past the document types it was tuned on. 46 grounded questions, dev/test split. See `data/real2/SOURCES.md` and `docs/EVAL.md`'s "v0.6" section for honest test-split numbers (one collected PDF, a corrupted MedGulf policy, was excluded rather than extracted as garbage — documented, not hidden).
 - Includes a **unified production retrieval pipeline** (`src/rag/pipeline.py`): doc-type routing → structure-aware or token chunking → parent-child split → hybrid dense+BM25+RRF over child chunks → parent-section expansion, plus an optional two-stage (document-routing + rerank) path for large corpora. See `docs/PIPELINE.md` and `docs/RETRIEVAL_TUNING.md`.
@@ -251,7 +251,7 @@ itself, in `docs/EVAL.md`.
 
 ## Roadmap
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md). Hybrid retrieval (BM25 + dense), cross-encoder re-ranking, the numeric query router (`smart` mode), real-LLM eval, token-based chunking, the real CCHI corpus, structure-aware chunking, parent-child retrieval, and the unified pipeline have shipped. Next: wire `UnifiedIndex` into `/chat` + UI, Ragas integration, streaming responses, deploy live demo.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md). Hybrid retrieval (BM25 + dense), cross-encoder re-ranking, the numeric query router, real-LLM eval, token-based chunking, the real CCHI corpus, structure-aware chunking, parent-child retrieval, the unified pipeline (now wired into `/chat` + UI), a second real corpus (`data/real2`), an external benchmark (MIRACL), the `smart`-router re-tune, Ragas infrastructure (built, blocked on an API key to actually run), and streaming responses (`/chat/stream`) have all shipped. Next: observability (structured logging, retrieval traces), a Gemini provider, and a live deploy.
 
 ## License
 

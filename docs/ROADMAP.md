@@ -65,7 +65,21 @@
   submodule that no longer exists); pinned to `ragas==0.2.15`
   (`requirements-dev.txt`), the newest version confirmed to import
   cleanly. Full writeup in `docs/EVAL.md`.
-- [ ] Streaming responses
+- [x] Streaming responses: `POST /chat/stream` (SSE -- citations event
+  first since they're built from retrieved passages, not parsed from the
+  model's answer, so they're known before generation starts; token events
+  as the answer streams; a final done event). Every provider (mock,
+  openai, anthropic, openrouter) implements `stream()`; MockProvider
+  slices its extractive answer into ~20-char chunks so streaming is
+  visibly exercised with zero API keys. `/chat` is unchanged -- this is
+  additive, not a replacement. Streamlit UI gained a "Stream response"
+  toggle (default on): citations render immediately, the answer renders
+  token-by-token underneath via manual SSE parsing (`st.write_stream`
+  doesn't support the RTL-aware custom HTML this UI already used, so
+  streaming updates a placeholder directly instead). Verified end-to-end
+  in a real browser, not just unit tests: asked 3 questions (2 streaming,
+  1 with the toggle off) and confirmed no duplicate rendering, correct
+  citation counts, and the non-streaming fallback still works unchanged.
 - [ ] Citation hover-preview in UI
 - [ ] Conversation memory (short-term, per session)
 - [ ] Live demo on Hugging Face Spaces or Fly.io

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 
 
 class AnthropicProvider:
@@ -20,3 +21,16 @@ class AnthropicProvider:
             temperature=0.1,
         )
         return "".join(block.text for block in msg.content if block.type == "text")
+
+    def stream(self, system: str, user: str) -> Iterator[str]:
+        # Anthropic's streaming shape differs from the OpenAI-compatible
+        # providers -- a context manager exposing .text_stream, not an
+        # iterable of chunks with a .choices[0].delta path.
+        with self._client.messages.stream(
+            model=self._model,
+            max_tokens=800,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+            temperature=0.1,
+        ) as stream:
+            yield from stream.text_stream

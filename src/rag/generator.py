@@ -7,6 +7,8 @@ runs end-to-end without an API key. Swap to `openai`, `anthropic`, or
 from __future__ import annotations
 
 import os
+import time
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -21,8 +23,19 @@ class AnswerWithCitations:
     language: str
 
 
+@dataclass
+class StreamStart:
+    """Sent as the first SSE event on /chat/stream, before any tokens --
+    citations are built directly from the retrieved passages (see
+    _build_citations), not parsed from the model's answer, so they're known
+    before generation even starts."""
+    citations: list[dict]
+    language: str
+
+
 class LLMProvider(Protocol):
     def complete(self, system: str, user: str) -> str: ...
+    def stream(self, system: str, user: str) -> Iterator[str]: ...
 
 
 class MockProvider:
@@ -35,6 +48,15 @@ class MockProvider:
             return "I do not know based on the retrieved passages."
         body = user[idx + len("Passages:") :].strip()
         return body[:300] + ("..." if len(body) > 300 else "")
+
+    def stream(self, system: str, user: str) -> Iterator[str]:
+        # Sliced into ~20-char chunks with a tiny sleep so the UI's
+        # streaming path is visibly exercised with zero API keys -- the
+        # same reason MockProvider exists for /chat at all.
+        answer = self.complete(system, user)
+        for i in range(0, len(answer), 20):
+            yield answer[i : i + 20]
+            time.sleep(0.02)
 
 
 def _build_prompt(query: str, passages: list[RetrievedPassage], lang: str) -> tuple[str, str]:
@@ -96,11 +118,7 @@ def _provider() -> LLMProvider:
     raise ValueError(f"Unknown LLM_PROVIDER: {name}")
 
 
-def generate(query: str, passages: list[RetrievedPassage]) -> AnswerWithCitations:
-    lang = detect_language(query)
-    sys, user = _build_prompt(query, passages, lang)
-    provider = _provider()
-    answer = provider.complete(sys, user).strip()
+def _build_citations(passages: list[RetrievedPassage]) -> list[dict]:
     citations = []
     for i, p in enumerate(passages):
         c = {"index": i + 1, "source": p.source, "chunk_id": p.chunk_id, "score": round(p.score, 3)}
@@ -115,4 +133,27 @@ def generate(query: str, passages: list[RetrievedPassage]) -> AnswerWithCitation
         if p.clause is not None:
             c["clause"] = p.clause
         citations.append(c)
-    return AnswerWithCitations(answer=answer, citations=citations, language=lang)
+    return citations
+
+
+def generate(query: str, passages: list[RetrievedPassage]) -> AnswerWithCitations:
+    lang = detect_language(query)
+    sys, user = _build_prompt(query, passages, lang)
+    provider = _provider()
+    answer = provider.complete(sys, user).strip()
+    return AnswerWithCitations(answer=answer, citations=_build_citations(passages), language=lang)
+
+
+def generate_stream(
+    query: str, passages: list[RetrievedPassage]
+) -> tuple[StreamStart, Iterator[str]]:
+    """Citations and language are known immediately (retrieval already
+    happened, citations don't depend on the model's answer) -- returned
+    eagerly as StreamStart so /chat/stream can emit them as the first SSE
+    event before a single token is generated. The token iterator is lazy;
+    nothing is generated until the caller starts consuming it."""
+    lang = detect_language(query)
+    sys, user = _build_prompt(query, passages, lang)
+    provider = _provider()
+    start = StreamStart(citations=_build_citations(passages), language=lang)
+    return start, provider.stream(sys, user)
