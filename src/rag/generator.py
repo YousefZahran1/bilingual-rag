@@ -115,6 +115,10 @@ def _provider() -> LLMProvider:
         from .providers.openrouter_provider import OpenRouterProvider  # type: ignore
 
         return OpenRouterProvider()
+    if name == "gemini":
+        from .providers.gemini_provider import GeminiProvider  # type: ignore
+
+        return GeminiProvider()
     raise ValueError(f"Unknown LLM_PROVIDER: {name}")
 
 
