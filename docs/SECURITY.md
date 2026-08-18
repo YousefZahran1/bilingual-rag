@@ -1,0 +1,42 @@
+# Security
+
+A pass against a fixed 20-item checklist, done alongside adding user
+accounts (`src/auth/`) and per-account quotas. Each item below is either
+implemented (with the file that does it) or marked N/A with a one-line
+reason -- nothing is silently skipped.
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| 1 | API keys via env only, grepped out of every diff before commit | Done | Every provider (`src/rag/providers/*.py`) reads keys from `os.environ`, never a literal. Every commit in this repo's history is grepped for key-shaped strings before staging -- process discipline, not something a test can enforce. |
+| 2 | Login rate limiting | Done | `src/auth/routes.py`: 5 failed attempts / 15 min per email (fixed window) *and* exponential backoff per IP (`2**n`, capped at 300s) -- two independent mechanisms, since a distributed attacker defeats a pure per-email limit and a shared-IP office network shouldn't get punished for one user's typos. |
+| 3 | SQLite-scale items documented N/A | Done | See rows 4, 9, 14 below -- each explains what "N/A at this scale" actually means rather than just asserting it. |
+| 4 | Multi-process rate-limit state | N/A | `_FAILURES_BY_EMAIL`/`_FAILURES_BY_IP` in `routes.py` are in-process dicts. Fine for a single-process deployment (this app's actual deploy target); a multi-worker/multi-process deployment would need this shared (Redis, or a DB table) instead -- documented in `routes.py`'s module docstring so it isn't forgotten if that changes. |
+| 5 | Every user-scoped query filters by authenticated user id | Done | The only user-scoped resource is quota (`queries_used`/`query_limit` on `User`), and `quota.py`'s `try_consume_query` takes `user_id` from the *server-verified* JWT (`get_current_user`), never a client-supplied value. `/auth/me` returns only the caller's own row, resolved the same way. |
+| 6 | Password hashing | Done | argon2 via `passlib` (`src/auth/security.py`), not bcrypt/sha256 -- argon2 is the current OWASP-recommended default and passlib's `CryptContext(deprecated="auto")` makes future algorithm migration a config change, not a rewrite. |
+| 7 | JWT secret handling | Done | `security.py`: `JWT_SECRET` required from env; if unset **and** `ENV=production`, startup raises instead of silently generating a secret that would invalidate every session on the next restart. Dev mode gets an auto-generated per-process secret -- sessions not surviving a restart locally is an acceptable, obvious tradeoff. |
+| 8 | `model_config = {"extra": "forbid"}` on request models | Done | `RegisterRequest`, `LoginRequest` (`src/auth/routes.py`) and `ChatRequest` (`src/api/app.py`) all set it -- blocks a client from smuggling an unexpected field (e.g. an `is_admin` key) into a request body that Pydantic would otherwise silently drop. |
+| 9 | Cookies: httponly/secure/samesite | N/A | This app doesn't use cookies at all -- auth is a bearer JWT in the `Authorization` header, sent explicitly by the client (Streamlit UI or any API caller) on every request. If a cookie-based session is ever added, it must be `httponly`, `secure`, `samesite=strict`. |
+| 10 | Bot protection on registration | Done | Honeypot field (`website`, hidden from real users, `RegisterRequest` in `routes.py`) -- a bot that blindly fills every form field trips it and gets a fake "success" response with no account created. No CAPTCHA: deliberate tradeoff for a portfolio-scale app where a third-party CAPTCHA dependency isn't worth the added complexity and friction; rate limiting (row 2) is the second layer. |
+| 11 | No raw SQL string formatting | Done | Every query goes through SQLAlchemy's ORM/Core query builder (`db.query(...)`, `sqlalchemy.update(...)`) -- grepped the auth package to confirm there's no f-string or `%`-formatted SQL anywhere in it. |
+| 12 | Pydantic validation on every new endpoint | Done | `/auth/register` and `/auth/login` both take a typed Pydantic body (`RegisterRequest`/`LoginRequest`); `/auth/me` takes none. `/chat` and `/chat/stream` were already validated (`ChatRequest`), now additionally gated by auth. |
+| 13 | XSS in `src/ui/app.py`'s `unsafe_allow_html=True` | Fixed | `_answer_html()` interpolated the LLM-generated answer directly into an HTML string rendered with `unsafe_allow_html=True` -- a crafted answer (or a retrieved document containing a prompt-injection payload that leaks into the answer) could have executed as live HTML/JS in the viewer's browser. Fixed by `html.escape()`-ing the answer text before interpolation; the `dir` attribute next to it is a hardcoded literal (`"rtl"`/`"ltr"`), never user input, so it's left as-is. |
+| 14 | Audit response models for leaked sensitive fields | Done | `TokenResponse` returns only `access_token`/`token_type`. `MeResponse` returns `email`/`queries_used`/`query_limit` -- never `password_hash` or the raw `User` ORM row. `ChatResponse`/`Citation` were already scoped to answer/citation data with no internals. No endpoint returns a stack trace or raw exception object to the client; the one place an exception message reaches the client is `/chat/stream`'s `error` SSE event, which carries `str(exc)` from the LLM provider call specifically so the UI can show *why* generation failed -- not an internal server error. |
+| 15 | Security headers middleware | Done | `src/api/app.py`: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and a `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` (this is a JSON API with no HTML responses of its own, so a maximally restrictive CSP is correct here, not an oversight). |
+| 16 | HTTPS | N/A (deploy layer) | Enforced by the reverse proxy / hosting platform (HF Spaces terminates TLS in front of the app), not app code -- there is no plaintext-HTTP fallback to disable at this layer since the app never terminates TLS itself. |
+| 17 | `pip-audit` in CI | Done | `.github/workflows/ci.yml` runs `pip-audit -r requirements.txt` on every push/PR. Two pre-existing findings are explicitly ignored with a dated justification in the workflow file itself (`PYSEC-2026-311`: chromadb's HTTP-server RCE, but this app only uses the embedded `PersistentClient`, never chromadb's server; `PYSEC-2026-1325`: an ECDSA timing attack in a transitive dep of `python-jose`, but this app only issues HS256 JWTs, never ECDSA-signed ones). Neither has an upstream fix yet; anything else fails the build. |
+| 18 | Duplicate-registration / enumeration | Done | Both the "email already registered" and "wrong password" cases return the exact same generic message and status code, so a client can't distinguish "no such account" from "wrong password" (login) or "taken" from "invalid" (registration) by probing. |
+| 19 | Quota race safety | Done | `src/auth/quota.py`: a single atomic `UPDATE ... WHERE queries_used < query_limit`, not a read-then-write -- see `docs/SECURITY.md` row 19's test coverage in `tests/test_auth.py::test_quota_concurrent_requests_only_one_succeeds`, which fires 10 concurrent requests at an account with 1 query left and asserts exactly 1 succeeds. |
+| 20 | Mock provider excluded from quota | Done | `src/api/app.py`'s `_enforce_quota()` skips the quota check entirely when `LLM_PROVIDER=mock` -- a deliberate choice (documented inline) so local development and CI runs never burn a real account's budget, not an oversight that happens to make testing easier. |
+
+## Threat model notes
+
+- **Auth is bearer-JWT-in-header only.** No cookies, no CSRF token needed --
+  CSRF relies on the browser automatically attaching credentials (cookies),
+  which doesn't happen here.
+- **Rate limiting is per-process.** See row 4. Acceptable for this app's
+  actual deployment (a single HF Spaces container); revisit before scaling
+  to multiple workers.
+- **The honeypot (row 10) is not a substitute for rate limiting** -- it
+  stops naive bots that fill every field, not a targeted attacker who's
+  actually read the registration form's HTML. Rate limiting is the real
+  defense; the honeypot is a cheap first filter.

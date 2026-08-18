@@ -1,10 +1,11 @@
 """Streamlit UI for the bilingual RAG assistant.
 
 Bilingual toggle, citation hover, last-3-questions memory in session state,
-streaming responses via /chat/stream (SSE).
+streaming responses via /chat/stream (SSE), and account login/quota.
 """
 from __future__ import annotations
 
+import html
 import json
 import os
 
@@ -16,10 +17,83 @@ load_dotenv()
 
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
 
+# A curated pull from data/real/eval_questions.jsonl and
+# data/real2/eval_questions.jsonl: guaranteed answerable, mixed EN/AR, plus
+# a couple deliberately unanswerable ones so a new user can see the model
+# abstain instead of guessing.
+EXAMPLE_QUESTIONS = [
+    "Within how many minutes must the Insurance Company approve a treatment request under the Unified Contract?",
+    "خلال كم دقيقة تلتزم شركة التأمين بالرد على طلب الموافقة في العقد الموحد؟",
+    "What is the maximum co-payment for generic medications for the total prescription?",
+    "How many operational chapters is CHI's Providers Classification Program organized into?",
+    "What is the CHI definition of Fraud among insurance parties?",
+    "متى بدأ تطبيق المرحلة الأولى من مشروع الوثيقة الموحدة لصاحب العمل؟",
+    "Within how many days of treatment must a Bupa member file a reimbursement claim form?",
+    "What is the maximum lifetime coverage limit under Tawuniya's individual (non-family) medical insurance plan?",
+    "هل تغطي وثيقة بوبا تكاليف علاج التجميل غير الضروري طبياً؟",
+]
+
 st.set_page_config(page_title="Bilingual RAG", page_icon="🇸🇦", layout="wide")
 
 if "history" not in st.session_state:
     st.session_state.history = []
+if "token" not in st.session_state:
+    st.session_state.token = None
+if "question_input" not in st.session_state:
+    st.session_state.question_input = ""
+
+
+def _auth_headers() -> dict[str, str]:
+    return {"Authorization": f"Bearer {st.session_state.token}"}
+
+
+def _login_register_gate() -> None:
+    st.title("Bilingual RAG")
+    st.caption("Sign in or create an account to ask questions.")
+    login_tab, register_tab = st.tabs(["Log in", "Register"])
+
+    with login_tab:
+        with st.form("login_form"):
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+            submitted = st.form_submit_button("Log in")
+        if submitted:
+            try:
+                r = httpx.post(f"{API_URL}/auth/login", json={"email": email, "password": password}, timeout=15)
+                if r.status_code == 200:
+                    st.session_state.token = r.json()["access_token"]
+                    st.rerun()
+                else:
+                    st.error(r.json().get("detail", "Login failed."))
+            except httpx.HTTPError as e:
+                st.error(f"Could not reach the API: {e}")
+
+    with register_tab:
+        with st.form("register_form"):
+            new_email = st.text_input("Email", key="register_email")
+            new_password = st.text_input(
+                "Password", type="password", key="register_password", help="At least 8 characters."
+            )
+            register_submitted = st.form_submit_button("Create account")
+        if register_submitted:
+            try:
+                r = httpx.post(
+                    f"{API_URL}/auth/register",
+                    json={"email": new_email, "password": new_password},
+                    timeout=15,
+                )
+                if r.status_code == 201:
+                    st.success("Account created. Log in on the other tab.")
+                else:
+                    detail = r.json().get("detail", "Registration failed.")
+                    st.error(detail if isinstance(detail, str) else "Registration failed.")
+            except httpx.HTTPError as e:
+                st.error(f"Could not reach the API: {e}")
+
+
+if not st.session_state.token:
+    _login_register_gate()
+    st.stop()
 
 try:
     _health = httpx.get(f"{API_URL}/health", timeout=5).json()
@@ -27,9 +101,29 @@ try:
 except httpx.HTTPError:
     _unified_ready = False
 
+try:
+    _me = httpx.get(f"{API_URL}/auth/me", headers=_auth_headers(), timeout=5)
+    if _me.status_code == 401:
+        st.session_state.token = None
+        st.rerun()
+    _me_data = _me.json()
+except httpx.HTTPError:
+    _me_data = None
+
 with st.sidebar:
     st.title("Bilingual RAG")
     st.caption("Arabic / English question answering over your documents.")
+
+    if _me_data:
+        st.markdown(f"**{_me_data['email']}**")
+        st.progress(
+            min(_me_data["queries_used"] / max(_me_data["query_limit"], 1), 1.0),
+            text=f"{_me_data['queries_used']} / {_me_data['query_limit']} queries used",
+        )
+    if st.button("Log out"):
+        st.session_state.token = None
+        st.rerun()
+
     top_k = st.slider("Top-k passages", min_value=1, max_value=10, value=4)
     mode_options = ["hybrid_rerank", "smart", "dense", "unified", "unified_two_stage"]
     retrieval_mode = st.selectbox(
@@ -79,10 +173,15 @@ with st.sidebar:
         st.session_state.history = []
 
 def _answer_html(direction: str, text: str) -> str:
+    # text is LLM-generated (or, worst case, echoes injected content from a
+    # retrieved document) and this renders via unsafe_allow_html=True --
+    # escape it or a crafted answer/document becomes live HTML/JS in the
+    # viewer's browser. direction is one of two hardcoded literals, never
+    # user input, so it doesn't need escaping.
     return (
         f"<div dir='{direction}' style='padding: 0.75rem; "
         f"border-left: 3px solid #0F4C81; background: rgba(15,76,129,0.06);'>"
-        f"{text}</div>"
+        f"{html.escape(text)}</div>"
     )
 
 
@@ -96,8 +195,17 @@ def _render_citations(citations: list[dict]) -> None:
 
 
 st.title("Ask in Arabic or English")
+
+with st.expander("Example questions", expanded=False):
+    cols = st.columns(3)
+    for i, q in enumerate(EXAMPLE_QUESTIONS):
+        if cols[i % 3].button(q, key=f"example_{i}", use_container_width=True):
+            st.session_state.question_input = q
+            st.rerun()
+
 question = st.text_input(
     "Question",
+    key="question_input",
     placeholder="مثال: ما هي تغطية التأمين الصحي؟  /  e.g. What's covered by the health plan?",
 )
 
@@ -115,7 +223,9 @@ if st.button("Ask") and question.strip():
         citations_box = st.empty()
         answer_text, citations, language = "", [], "en"
         try:
-            with httpx.stream("POST", f"{API_URL}/chat/stream", json=payload, timeout=60) as r:
+            with httpx.stream(
+                "POST", f"{API_URL}/chat/stream", json=payload, headers=_auth_headers(), timeout=60
+            ) as r:
                 r.raise_for_status()
                 event_type = None
                 for line in r.iter_lines():
@@ -139,7 +249,15 @@ if st.button("Ask") and question.strip():
             data = {"answer": answer_text, "citations": citations, "language": language}
             just_streamed = True
         except httpx.HTTPStatusError as e:
-            if e.response.status_code == 409:
+            if e.response.status_code == 401:
+                st.session_state.token = None
+                st.rerun()
+            elif e.response.status_code == 429:
+                detail = e.response.json().get("detail", {})
+                st.error(
+                    f"Query limit reached ({detail.get('used', '?')}/{detail.get('limit', '?')})."
+                )
+            elif e.response.status_code == 409:
                 detail = e.response.json().get("detail", {})
                 st.error(
                     f"{detail.get('error', 'Retrieval unavailable')}. "
@@ -152,11 +270,19 @@ if st.button("Ask") and question.strip():
     else:
         with st.spinner("Retrieving and generating..."):
             try:
-                r = httpx.post(f"{API_URL}/chat", json=payload, timeout=60)
+                r = httpx.post(f"{API_URL}/chat", json=payload, headers=_auth_headers(), timeout=60)
                 r.raise_for_status()
                 data = r.json()
             except httpx.HTTPStatusError as e:
-                if e.response.status_code == 409:
+                if e.response.status_code == 401:
+                    st.session_state.token = None
+                    st.rerun()
+                elif e.response.status_code == 429:
+                    detail = e.response.json().get("detail", {})
+                    st.error(
+                        f"Query limit reached ({detail.get('used', '?')}/{detail.get('limit', '?')})."
+                    )
+                elif e.response.status_code == 409:
                     detail = e.response.json().get("detail", {})
                     st.error(
                         f"{detail.get('error', 'Retrieval unavailable')}. "

@@ -2,6 +2,7 @@
 pytest-cov>=5.0
 mypy>=1.10
 ruff==0.16.2
+pip-audit>=2.7
 
 # eval/run_ragas.py only -- not needed to run the app, only to run Ragas
 # faithfulness/relevancy/context metrics against a real LLM judge.

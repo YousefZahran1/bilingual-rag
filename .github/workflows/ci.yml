@@ -19,3 +19,17 @@ jobs:
         run: ruff check src tests eval
       - name: Pytest
         run: PYTHONPATH=. pytest -q
+      - name: pip-audit (dependency vulnerabilities)
+        # PYSEC-2026-311 (chromadb): pre-auth RCE in chromadb's HTTP server
+        # mode via trust_remote_code -- this app only uses
+        # chromadb.PersistentClient (embedded, no HTTP server), so that
+        # attack surface doesn't exist here. PYSEC-2026-1325 (ecdsa):
+        # Minerva timing attack on ECDSA signing -- transitive via
+        # python-jose, and this app only issues HS256 (symmetric) JWTs, so
+        # the vulnerable ECDSA signing path is never exercised. Neither has
+        # an upstream fix yet; both reassessed on every dependency bump.
+        # Anything else found here fails the build.
+        run: >
+          pip-audit -r requirements.txt
+          --ignore-vuln PYSEC-2026-311
+          --ignore-vuln PYSEC-2026-1325

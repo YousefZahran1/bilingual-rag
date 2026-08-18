@@ -8,10 +8,15 @@ from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy.orm import Session
 
+from src.auth.models import User, get_session
+from src.auth.quota import try_consume_query
+from src.auth.routes import get_current_user
+from src.auth.routes import router as auth_router
 from src.rag.bm25_index import BM25Index
 from src.rag.fusion import retrieve_pipeline, smart_retrieve
 from src.rag.generator import generate, generate_stream
@@ -26,6 +31,19 @@ app = FastAPI(
     version="0.4.0",
     summary="Arabic / English retrieval-augmented Q&A.",
 )
+app.include_router(auth_router)
+
+
+@app.middleware("http")
+async def _security_headers(request, call_next):
+    # HTTPS itself is enforced at the deploy layer (HF Spaces / reverse
+    # proxy terminates TLS), not here -- these are the headers that are
+    # actually app-code's job.
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    return response
 
 # Reuse one instance of each across requests
 _store = VectorStore()
@@ -49,6 +67,8 @@ def _unified_ready() -> bool:
 
 
 class ChatRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
     question: str = Field(..., min_length=1, max_length=2000)
     top_k: int = Field(default=4, ge=1, le=20)
     # Defaults to "hybrid_rerank" as of v0.7 (was "smart"). "smart" was
@@ -139,8 +159,31 @@ def _retrieve_passages(req: ChatRequest) -> list[RetrievedPassage]:
     return _store.retrieve(req.question, top_k=req.top_k)
 
 
+def _enforce_quota(user: User, db: Session) -> None:
+    # The mock provider costs nothing and exists for local dev/testing --
+    # deliberately excluded from quota so exercising the app or CI doesn't
+    # burn a real account's query budget. Not an oversight: every other
+    # provider path below is metered.
+    if os.environ.get("LLM_PROVIDER", "mock") == "mock":
+        return
+    if not try_consume_query(db, user.id):
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "query limit reached",
+                "limit": user.query_limit,
+                "used": user.queries_used,
+            },
+        )
+
+
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest) -> ChatResponse:
+def chat(
+    req: ChatRequest,
+    user: User = Depends(get_current_user),  # noqa: B008 -- FastAPI's Depends() is required in the default position
+    db: Session = Depends(get_session),  # noqa: B008
+) -> ChatResponse:
+    _enforce_quota(user, db)
     passages = _retrieve_passages(req)
     result = generate(req.question, passages)
     return ChatResponse(
@@ -151,13 +194,18 @@ def chat(req: ChatRequest) -> ChatResponse:
 
 
 @app.post("/chat/stream")
-def chat_stream(req: ChatRequest) -> StreamingResponse:
+def chat_stream(
+    req: ChatRequest,
+    user: User = Depends(get_current_user),  # noqa: B008 -- FastAPI's Depends() is required in the default position
+    db: Session = Depends(get_session),  # noqa: B008
+) -> StreamingResponse:
     """Server-Sent Events: a `citations` event first (retrieval is already
     done, and citations are built from the passages directly, not parsed
     from the model's answer -- see generator.py -- so they're known before
     a single token is generated), then `token` events as the answer
     streams in, then a final `done` event. /chat is left completely
     unchanged; this is an additive endpoint, not a replacement."""
+    _enforce_quota(user, db)
     passages = _retrieve_passages(req)
     start, tokens = generate_stream(req.question, passages)
 
