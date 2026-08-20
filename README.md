@@ -201,6 +201,10 @@ Reproduces the table in `docs/EVAL.md`: retrieval recall@k, answer faithfulness,
 
 Copy `.env.example` to `.env` to configure the embedding model, vector/index dirs, LLM provider, and `TOP_K`.
 
+## Accounts & quota
+
+`/chat` and `/chat/stream` require a logged-in account -- register/log in from the Streamlit UI (or `POST /auth/register` / `POST /auth/login` directly), which returns a JWT the UI stores in session state and sends as `Authorization: Bearer <token>` on every request. Each account gets 10 queries by default (`query_limit` on the `User` row); a request past the limit gets `429 {"error": "query limit reached", "limit": N, "used": N}`. The mock provider (`LLM_PROVIDER=mock`, the default) doesn't count against quota, so running the app locally or in CI never burns a real budget. Full threat-model writeup and a 20-item security checklist (implemented vs. N/A-with-reason) in [`docs/SECURITY.md`](docs/SECURITY.md).
+
 ## Results
 
 > **Stale, pending re-investigation.** The subset-by-tag breakdown below
