@@ -40,37 +40,66 @@ def _unique_email(label: str) -> str:
     return f"{label}-{uuid.uuid4().hex}@example.com"
 
 
+def _register(email: str, password: str, **extra):
+    # All tests share one TestClient/IP -- clear the per-IP register
+    # throttle first so an earlier test's attempts don't backoff-block
+    # this one.
+    routes_module._REGISTER_ATTEMPTS_BY_IP.clear()
+    return client.post("/auth/register", json={"email": email, "password": password, **extra})
+
+
+def _login(email: str, password: str) -> dict:
+    routes_module._FAILURES_BY_IP.clear()
+    return client.post("/auth/login", json={"email": email, "password": password})
+
+
 # --- registration -----------------------------------------------------
 
 
 def test_register_creates_user():
-    r = client.post("/auth/register", json={"email": _unique_email("reg"), "password": "password123"})
+    r = _register(_unique_email("reg"), "password123")
     assert r.status_code == 201
 
 
 def test_register_duplicate_email_rejected_generically():
     email = _unique_email("dup")
-    client.post("/auth/register", json={"email": email, "password": "password123"})
-    r = client.post("/auth/register", json={"email": email, "password": "password123"})
+    _register(email, "password123")
+    r = _register(email, "password123")
     assert r.status_code == 400
     assert "already registered" in r.json()["detail"]
 
 
+def test_register_duplicate_email_case_insensitive():
+    base = f"casedup-{uuid.uuid4().hex}"
+    r1 = _register(f"{base}@example.com", "password123")
+    assert r1.status_code == 201
+    r2 = _register(f"{base.upper()}@EXAMPLE.COM", "password123")
+    assert r2.status_code == 400
+
+
 def test_register_weak_password_rejected():
-    r = client.post("/auth/register", json={"email": _unique_email("weak"), "password": "short"})
+    r = _register(_unique_email("weak"), "short")
     assert r.status_code == 422
 
 
 def test_register_honeypot_silently_creates_nothing():
     email = _unique_email("bot")
-    r = client.post(
-        "/auth/register",
-        json={"email": email, "password": "password123", "website": "http://spam.example"},
-    )
+    r = _register(email, "password123", website="http://spam.example")
     assert r.status_code == 201  # same response a real registration gets
-    routes_module._FAILURES_BY_IP.clear()
-    r2 = client.post("/auth/login", json={"email": email, "password": "password123"})
+    r2 = _login(email, "password123")
     assert r2.status_code == 401  # no account was actually created
+
+
+def test_register_second_attempt_from_same_ip_is_backoff_limited():
+    routes_module._REGISTER_ATTEMPTS_BY_IP.clear()
+    r1 = client.post(
+        "/auth/register", json={"email": _unique_email("regback1"), "password": "password123"}
+    )
+    assert r1.status_code == 201
+    r2 = client.post(
+        "/auth/register", json={"email": _unique_email("regback2"), "password": "password123"}
+    )
+    assert r2.status_code == 429
 
 
 # --- login + rate limiting ---------------------------------------------
@@ -78,26 +107,37 @@ def test_register_honeypot_silently_creates_nothing():
 
 def test_login_success_returns_token():
     email = _unique_email("login")
-    client.post("/auth/register", json={"email": email, "password": "password123"})
-    routes_module._FAILURES_BY_IP.clear()
-    r = client.post("/auth/login", json={"email": email, "password": "password123"})
+    _register(email, "password123")
+    r = _login(email, "password123")
     assert r.status_code == 200
     assert r.json()["token_type"] == "bearer"
     assert r.json()["access_token"]
 
 
+def test_login_case_insensitive_email():
+    email = _unique_email("logincase")
+    _register(email, "password123")
+    r = _login(email.upper(), "password123")
+    assert r.status_code == 200
+
+
 def test_login_wrong_password_rejected_generically():
     email = _unique_email("wrongpw")
-    client.post("/auth/register", json={"email": email, "password": "password123"})
-    routes_module._FAILURES_BY_IP.clear()
-    r = client.post("/auth/login", json={"email": email, "password": "nope12345"})
+    _register(email, "password123")
+    r = _login(email, "nope12345")
+    assert r.status_code == 401
+    assert r.json()["detail"] == "invalid email or password"
+
+
+def test_login_nonexistent_email_returns_generic_401():
+    r = _login(_unique_email("nope"), "whatever123")
     assert r.status_code == 401
     assert r.json()["detail"] == "invalid email or password"
 
 
 def test_login_ip_backoff_blocks_immediate_retry_after_failure():
     email = _unique_email("backoff")
-    client.post("/auth/register", json={"email": email, "password": "password123"})
+    _register(email, "password123")
     routes_module._FAILURES_BY_EMAIL.clear()
     routes_module._FAILURES_BY_IP.clear()
     r1 = client.post("/auth/login", json={"email": email, "password": "wrong"})
@@ -111,14 +151,54 @@ def test_login_rate_limited_after_max_attempts():
     # fixed-window limit from the separate IP-backoff mechanism (covered
     # by test_login_ip_backoff_blocks_immediate_retry_after_failure).
     email = _unique_email("ratelimit")
-    client.post("/auth/register", json={"email": email, "password": "correctpassword"})
+    _register(email, "correctpassword")
+    for _ in range(routes_module.RATE_LIMIT_MAX_ATTEMPTS):
+        r = _login(email, "wrong")
+        assert r.status_code == 401
+    r = _login(email, "correctpassword")
+    assert r.status_code == 429
+
+
+def test_lockout_is_bounded_and_not_renewed_by_continued_attempts(monkeypatch):
+    """A victim locked out by an attacker must recover on its own -- the
+    lockout window is fixed at the moment it's triggered, not extended by
+    every subsequent failed attempt (which would let an attacker sending
+    one request every <15 minutes keep the account locked forever)."""
+    email = _unique_email("boundedlockout")
+    _register(email, "correctpassword")
+
+    fake_now = [1_000_000.0]
+    monkeypatch.setattr(routes_module.time, "time", lambda: fake_now[0])
+
     for _ in range(routes_module.RATE_LIMIT_MAX_ATTEMPTS):
         routes_module._FAILURES_BY_IP.clear()
         r = client.post("/auth/login", json={"email": email, "password": "wrong"})
         assert r.status_code == 401
+        fake_now[0] += 1
+
+    routes_module._FAILURES_BY_IP.clear()
+    r = client.post("/auth/login", json={"email": email, "password": "wrong"})
+    assert r.status_code == 429  # locked out
+
+    fake_now[0] += routes_module.RATE_LIMIT_WINDOW_S + 1
     routes_module._FAILURES_BY_IP.clear()
     r = client.post("/auth/login", json={"email": email, "password": "correctpassword"})
-    assert r.status_code == 429
+    assert r.status_code == 200  # lockout expired on its own
+
+
+def test_prune_deletes_empty_bucket_key():
+    """Regression guard for unbounded pre-auth memory growth: a bucket
+    whose entries have all expired must not leave a permanent, empty dict
+    entry behind for every distinct email/IP an attacker ever probed."""
+    store: dict[str, list[float]] = {}
+    now = 1000.0
+    routes_module._record(store, "probe@example.com", now)
+    assert "probe@example.com" in store
+
+    later = now + routes_module.RATE_LIMIT_WINDOW_S + 1
+    result = routes_module._prune(store, "probe@example.com", later)
+    assert result == []
+    assert "probe@example.com" not in store
 
 
 # --- JWT -----------------------------------------------------------------
@@ -160,17 +240,16 @@ def test_get_current_user_rejects_malformed_header():
 # --- quota enforcement -----------------------------------------------------
 
 
-def _login(email: str, password: str) -> dict[str, str]:
-    routes_module._FAILURES_BY_IP.clear()
-    r = client.post("/auth/login", json={"email": email, "password": password})
+def _auth_headers(email: str, password: str) -> dict[str, str]:
+    r = _login(email, password)
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
 def test_mock_provider_does_not_count_against_quota(monkeypatch):
     email = _unique_email("mockquota")
-    client.post("/auth/register", json={"email": email, "password": "password123"})
-    headers = _login(email, "password123")
+    _register(email, "password123")
+    headers = _auth_headers(email, "password123")
 
     monkeypatch.setenv("LLM_PROVIDER", "mock")
     r = client.post("/chat", json={"question": "what is the co-payment?"}, headers=headers)
@@ -182,8 +261,8 @@ def test_mock_provider_does_not_count_against_quota(monkeypatch):
 
 def test_quota_exhausted_returns_429_with_shape(monkeypatch):
     email = _unique_email("exhausted")
-    client.post("/auth/register", json={"email": email, "password": "password123"})
-    headers = _login(email, "password123")
+    _register(email, "password123")
+    headers = _auth_headers(email, "password123")
 
     db_gen = get_session()
     db = next(db_gen)
